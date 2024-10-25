@@ -3,8 +3,10 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
-#include "image_processing.h"
+#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include "image_processing.h"
+
 
 int main() {
     const char *folder = "PATH_TO_IMAGES_FOLDER";
