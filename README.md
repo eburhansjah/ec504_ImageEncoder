@@ -24,3 +24,22 @@ Design an efficient image encoder that accepts any amount of JPEG images and enc
 ├── main.c
 └── stb_image.h
 ```
+
+## Dependencies
+- make
+- C (version 11+)
+- gcc
+
+
+## How To
+First, clone this repository:
+```
+git clone https://github.com/eburhansjah/ec504_ImageEncoder.git
+```
+Then, in `main.c`, update the path to your directory of images.
+
+The Makefile is currently not functional, so the way to compile this program is:
+```
+gcc -o encoder main.c source/image_processing.c source/jpeg_handler.c -I include -lm
+```
+
