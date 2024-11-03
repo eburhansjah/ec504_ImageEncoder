@@ -10,18 +10,18 @@ int check_dimensions(Image *images[], int count) {
 
     if (count == 0){
         printf("No images found in directory.\n");
-        return -1;
+        return 0;
     }
 
     for (int i = 1; i < count; i++) {
         if (images[i]->width != width || images[i]->height != height) {
             printf("Error: Image dimensions do not match\n");
-            return -1;
+            return 0;
         }
     }
 
     printf("Images have matching dimensions of width = %d and height = %d\n", width, height);
-    return 0;
+    return 1;
 }
 
 void convert_rgb_to_ycbcr(Image *img, unsigned char **Y, unsigned char **Cb, unsigned char **Cr){
