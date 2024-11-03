@@ -9,7 +9,8 @@
 
 
 int main() {
-    const char *folder = "/home/arthurus-rex/Documents/EC504/Project/ec504_ImageEncoder/images";
+    // const char *folder = "/home/arthurus-rex/Documents/EC504/Project/ec504_ImageEncoder/images";
+    const char *folder = "/Users/ellenkho/Documents/GitHub/ec504_ImageEncoder/images";
     const char *bitstream_folder = "bitstreams";
 
     // Generate folder to store bitstreams if it does not exist
@@ -27,14 +28,14 @@ int main() {
         return -1;
     }
 
-    Image *images[100]; // assume we have 100 images
+    Image *images[2]; // assume we have 100 images
     int img_count = 0;
     char filepath[256];
 
     // Loading images from directory
     while ((entry = readdir(dir)) != NULL) {
         if (strstr(entry->d_name, ".jpg") != NULL || strstr(entry->d_name, ".jpeg") != NULL) {
-            printf(filepath, sizeof(filepath), "%s/%s", folder, entry->d_name); // changed from snprintf to printf
+            snprintf(filepath, sizeof(filepath), "%s/%s", folder, entry->d_name);
             Image *img = (Image *)malloc(sizeof(Image));
 
             if(!img){
@@ -89,7 +90,20 @@ int main() {
         free(images[i]);
     }
 
-printf("Image processing finished.\n");
+    printf("Image processing finished.\n");
+
+    // unsigned char *Y, *Cb, *Cr;
+    // int width, height;
+    // const char *bitstream_filename = "bitstreams/image_1.bit"; // Adjust as needed
+
+    // // Debugging
+    // read_bitstream(bitstream_filename, &Y, &Cb, &Cr, &width, &height);
+
+    // printf("First pixel YCbCr values: Y=%d, Cb=%d, Cr=%d\n", Y[0], Cb[0], Cr[0]);
+
+    // free(Y);
+    // free(Cb);
+    // free(Cr);
 
     return 0;
 }
