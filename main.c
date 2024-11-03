@@ -9,7 +9,7 @@
 
 
 int main() {
-    const char *folder = "PATH_TO_IMAGES_FOLDER";
+    const char *folder = "/home/arthurus-rex/Documents/EC504/Project/ec504_ImageEncoder/images";
     const char *bitstream_folder = "bitstreams";
 
     // Generate folder to store bitstreams if it does not exist
@@ -34,7 +34,7 @@ int main() {
     // Loading images from directory
     while ((entry = readdir(dir)) != NULL) {
         if (strstr(entry->d_name, ".jpg") != NULL || strstr(entry->d_name, ".jpeg") != NULL) {
-            snprintf(filepath, sizeof(filepath), "%s/%s", folder, entry->d_name);
+            printf(filepath, sizeof(filepath), "%s/%s", folder, entry->d_name); // changed from snprintf to printf
             Image *img = (Image *)malloc(sizeof(Image));
 
             if(!img){
@@ -89,7 +89,7 @@ int main() {
         free(images[i]);
     }
 
-    print("Image processing finished.\n");
+printf("Image processing finished.\n");
 
     return 0;
 }
