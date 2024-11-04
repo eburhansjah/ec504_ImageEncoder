@@ -67,6 +67,29 @@ void convert_rgb_to_ycbcr(Image *img, unsigned char **Y, unsigned char **Cb, uns
     printf("Image converted from RGB to YCbCr.\n");
 }
 
+// Subsampling for Cb and Cr data
+// Each 2 x 2 block of pixels in the original image will be replaced by the average value of Cb and Cr
+void subsampling_420(unsigned char *Cb, unsigned char *Cr, int width, int height, unsigned char **Cb_sub, unsigned char **Cr_sub){
+    int sub_width = width / 2;
+    int sub_height = height / 2;
+
+    *Cb_sub = (unsigned char *)malloc(sub_width * sub_height);
+    *Cr_sub = (unsigned char *)malloc(sub_width * sub_height);
+
+    for (int y = 0; y < height; y += 2) {
+        for (int x = 0; x < width; x += 2) {
+            int idx = (y / 2) * sub_width + (x / 2);
+
+            // Replacing 2x2 block for both Cb and Cr with their average values
+            (*Cb_sub)[idx] = (Cb[y * width + x] + Cb[y * width + x + 1] + 
+                              Cb[(y + 1) * width + x] + Cb[(y + 1) * width + x + 1]) / 4;
+
+            (*Cr_sub)[idx] = (Cr[y * width + x] + Cr[y * width + x + 1] + 
+                              Cr[(y + 1) * width + x] + Cr[(y + 1) * width + x + 1]) / 4;
+        }
+    }
+}
+
 void write_to_bitstream(const char *filename, unsigned char *Y, unsigned char *Cb, unsigned char *Cr, int width, int height){
     FILE *file = fopen(filename, "wb");
     if (!file) {
