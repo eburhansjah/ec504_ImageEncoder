@@ -1,3 +1,6 @@
 /images
 /bitstreams
 encoder
+.o
+.swp
+.c.swp
