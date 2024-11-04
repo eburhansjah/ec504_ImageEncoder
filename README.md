@@ -13,16 +13,19 @@ Design an efficient image encoder that accepts any amount of JPEG images and enc
 
 ```bash
 .
+├── Makefile
 ├── README.md
 ├── bitstreams
+├── encoder
+├── images
 ├── include
 │   ├── image_processing.h
-│   └── jpeg_handler.h
-├── source
-│   ├── image_processing.c
-│   └── jpeg_handler.c
+│   ├── jpeg_handler.h
+│   └── stb_image.h
 ├── main.c
-└── stb_image.h
+└── source
+    ├── image_processing.c
+    └── jpeg_handler.c
 ```
 
 ## Dependencies
