@@ -5,13 +5,13 @@
 
 
 int check_dimensions(Image *images[], int count) {
-    int width = images[0]->width;
-    int height = images[0]->height;
-
     if (count == 0){
         printf("No images found in directory.\n");
         return 0;
     }
+
+    int width = images[0]->width;
+    int height = images[0]->height;
 
     for (int i = 1; i < count; i++) {
         if (images[i]->width != width || images[i]->height != height) {
@@ -41,6 +41,10 @@ void convert_rgb_to_ycbcr(Image *img, unsigned char **Y, unsigned char **Cb, uns
 
     if (*Y == NULL || *Cb == NULL || *Cr == NULL) {
         printf("Error: memory allocation failed for YCbCr components.\n");
+        free(*Y);
+        free(*Cb);
+        free(*Cr);
+
         return;
     }
 

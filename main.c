@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -9,44 +10,71 @@
 
 
 int main() {
-    // const char *folder = "/home/arthurus-rex/Documents/EC504/Project/ec504_ImageEncoder/images";
-    const char *folder = "/Users/ellenkho/Documents/GitHub/ec504_ImageEncoder/images";
-    const char *bitstream_folder = "bitstreams";
+    const char *images_folder = "./images";
+    const char *bitstream_folder = "./bitstreams";
 
     // Generate folder to store bitstreams if it does not exist
     struct stat st = {0};
     if (stat(bitstream_folder, &st) == -1) {
         mkdir(bitstream_folder, 0700);
-        printf("Created directory: %s\n", bitstream_folder);
+        printf("Created directory for bitstreams: %s\n", bitstream_folder);
+    }
+
+    // Generate images folder if it does not exist
+    if (stat(images_folder, &st) == -1) {
+        mkdir(images_folder, 0700);
+        printf("Created directory for images: %s\n", images_folder);
+        printf("Please add your .jpg images in the '%s' folder and rerun the program.\n", images_folder);
+        return 0;
     }
 
     struct dirent *entry;
-    DIR *dir = opendir(folder);
+    DIR *dir = opendir(images_folder);
 
     if (!dir) {
         printf("Error: Could not open images directory.\n");
         return -1;
     }
 
-    Image *images[2]; // assume we have 100 images
+    Image **images = NULL; // Dynamic array
     int img_count = 0;
+    int img_capacity = 100; // Initial capacity of images
+    images = malloc(img_capacity * sizeof(Image *));
+
+    if (!images) {
+        printf("Error: Memory allocation failed for images array.\n");
+        closedir(dir);
+        return -1;
+    }
+
     char filepath[256];
 
     // Loading images from directory
     while ((entry = readdir(dir)) != NULL) {
         if (strstr(entry->d_name, ".jpg") != NULL || strstr(entry->d_name, ".jpeg") != NULL) {
-            snprintf(filepath, sizeof(filepath), "%s/%s", folder, entry->d_name);
+            if (img_count >= img_capacity) {
+                img_capacity *= 2; // Increase capacity x2
+                images = realloc(images, img_capacity * sizeof(Image *));
+                if (!images) {
+                    printf("Error: Memory reallocation failed for images array.\n");
+                    closedir(dir);
+                    return -1;
+                }
+            }
+
+            snprintf(filepath, sizeof(filepath), "%s/%s", images_folder, entry->d_name);
             Image *img = (Image *)malloc(sizeof(Image));
 
             if(!img){
                 printf("Error: could not allocate memory.\n");
                 closedir(dir);
+                free(images);
                 return -1;
             }
             
             img->data = stbi_load(filepath, &img->width, &img->height, &img->channels, 0);
             if (!img->data) {
-                printf("Error loading image %s\n", filepath);
+                printf("Error loading image %s: %s\n", filepath, stbi_failure_reason());
                 free(img);
                 continue;
             }
@@ -91,19 +119,6 @@ int main() {
     }
 
     printf("Image processing finished.\n");
-
-    // unsigned char *Y, *Cb, *Cr;
-    // int width, height;
-    // const char *bitstream_filename = "bitstreams/image_1.bit"; // Adjust as needed
-
-    // // Debugging
-    // read_bitstream(bitstream_filename, &Y, &Cb, &Cr, &width, &height);
-
-    // printf("First pixel YCbCr values: Y=%d, Cb=%d, Cr=%d\n", Y[0], Cb[0], Cr[0]);
-
-    // free(Y);
-    // free(Cb);
-    // free(Cr);
 
     return 0;
 }
