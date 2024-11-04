@@ -98,6 +98,10 @@ int main() {
     for (int i = 0; i < img_count; i++) {
         unsigned char *Y, *Cb, *Cr;
         convert_rgb_to_ycbcr(images[i], &Y, &Cb, &Cr);
+
+        // 4:2:0 subsampling on Cb and Cr channels
+        unsigned char *Cb_sub, *Cr_sub;
+        subsampling_420(Cb, Cr, images[i]->width, images[i]->height, &Cb_sub, &Cr_sub);
         
         // Creating unique bitstream file names
         char bitstream_filename[256];
@@ -106,10 +110,12 @@ int main() {
         // Each bitstream for each file (e.g. image_1.bit) will contain: width, height, Y, Cb, Cr data by the pixel
         write_to_bitstream(bitstream_filename, Y, Cb, Cr, images[i]->width, images[i]->height);
         
-        // Free YCbCr components after processing
+        // Free components after processing
         free(Y);
         free(Cb);
         free(Cr);
+        free(Cb_sub);
+        free(Cr_sub);
     }
 
     // Free images
