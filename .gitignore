@@ -3,4 +3,5 @@
 encoder
 .o
 .swp
+.c
 .c.swp
