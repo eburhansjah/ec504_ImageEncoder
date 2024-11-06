@@ -1,5 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include<string.h>
+#include <math.h>
+
+#define PI 3.14159265358979323846
 
 #include "image_processing.h"
 
@@ -88,6 +92,48 @@ void subsampling_420(unsigned char *Cb, unsigned char *Cr, int width, int height
                               Cr[(y + 1) * width + x] + Cr[(y + 1) * width + x + 1]) / 4;
         }
     }
+}
+
+// Fn. that extracts 8x8 blocks from Y, Cb, and Cr component
+// MPEG-1 operates on video in a picture resolution of 16x16, which includes subsampled blocks 
+// (4 for Y of size 8x8, one Cb of 8x8, and one Cr of 8x8)
+void extract_8x8_block(unsigned char *channel, int image_width, int start_x, int start_y, unsigned char block[64]) {
+    for (int row = 0; row < 8; row++) {
+        int source_idx = (start_y + row) * image_width + start_x;
+
+        // Copying 8 pixels per row; memcpy copies a block of mem. from one location to another 
+        memcpy(&block[row * 8], &channel[source_idx], 8);
+    }
+}
+
+// 2D-dimensional discrete cosine transform (2D DCT)
+// Fn. that transforms images into the frequency domain (important features are extracted in small number of DCT coeffs.)
+// DCT is applied to every block serially
+// ref: https://towardsdatascience.com/image-compression-dct-method-f2bb79419587
+void DCT(const unsigned char block[64], float dct_block[64]){
+    const int N = 8; // JPEG algorithm standard
+    float c_u, c_v; // Normalization factors for frequency pair(u,v)
+    float sum;
+
+    // Computing u,vth entry of DCT of an image (freq.)
+    for (int u = 0; u < N; u++) {
+        for (int v = 0; v < N; v++) {
+            sum = 0.0; // Storing weighted sum of cosines
+
+            // Simplifying with the following vector representation
+            c_u = (u == 0) ? sqrt(1.0 / N) : sqrt(2.0 / N);
+            c_v = (v == 0) ? sqrt(1.0 / N) : sqrt(2.0 / N);
+
+            for (int x = 0; x < N; x++) {
+                for (int y = 0; y < N; y++) {
+                    float pixel = (float)block[y * N + x];
+                    sum += pixel * cos((2 * x + 1) * u * PI / (2.0 * N)) * cos((2 * y + 1) * v * PI / (2.0 * N));
+                }
+            }
+            dct_block[v * N + u] = c_u * c_v * sum;
+        }
+    }
+
 }
 
 void write_to_bitstream(const char *filename, unsigned char *Y, unsigned char *Cb, unsigned char *Cr, int width, int height){

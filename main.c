@@ -94,15 +94,48 @@ int main() {
         return -1;
     }
 
-    // Converting images from RGB to YCbCr and saving bitstreams
     for (int i = 0; i < img_count; i++) {
+        // Converting images from RGB to YCbCr and saving bitstreams
         unsigned char *Y, *Cb, *Cr;
         convert_rgb_to_ycbcr(images[i], &Y, &Cb, &Cr);
 
         // 4:2:0 subsampling on Cb and Cr channels
         unsigned char *Cb_sub, *Cr_sub;
         subsampling_420(Cb, Cr, images[i]->width, images[i]->height, &Cb_sub, &Cr_sub);
-        
+
+        // Extracting macroblocks and applying DCT over them
+        // (4 for Y of 8x8 blocks, one Cb of 8x8 block, and one Cr of 8x8 block)
+        // ref: https://stackoverflow.com/questions/8310749/discrete-cosine-transform-dct-implementation-c
+        // Y
+        for (int y = 0; y < images[i]->height; y += 16) {
+            for (int x = 0; x < images[i]->width; x += 16) {
+                // Dividing Y into 4 8x8 blocks
+                unsigned char Y_blocks[4][64]; // Array that stores 4 8x8 blocks
+                float Y_dct_blocks[4][64];
+
+                for (int block = 0; block < 4; block++) {
+                    int x_start_pos = x + (block % 2) * 8;
+                    int y_start_pos = y + (block / 2) * 8;
+
+                    extract_8x8_block(Y, images[i]->width, x_start_pos, y_start_pos, Y_blocks[block]);
+
+                    DCT(Y_blocks[block], Y_dct_blocks[block]);
+                }
+
+                // Diving Cb and Cr each into 1 8x8 block
+                unsigned char Cb_block[64], Cr_block[64];
+                float Cb_dct[64], Cr_dct[64];
+
+                extract_8x8_block(Cb, images[i]->width / 2, x / 2, y / 2, Cb_block);
+                extract_8x8_block(Cr, images[i]->width / 2, x / 2, y / 2, Cr_block);
+            
+                DCT(Cb_block, Cb_dct); // Apply DCT to Cb
+                DCT(Cr_block, Cr_dct); // Apply DCT to Cr
+
+                // TO DO NEXT: QUANTIZATION
+            }
+        }
+
         // Creating unique bitstream file names
         char bitstream_filename[256];
         snprintf(bitstream_filename, sizeof(bitstream_filename), "%s/image_%d.bit", bitstream_folder, i + 1);
