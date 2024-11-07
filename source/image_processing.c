@@ -7,6 +7,31 @@
 
 #include "image_processing.h"
 
+// Change if needed
+// note: small quantization coeffs. retain more info from image
+//       large quantization coeffs. retain less info from image
+//       values are restricted to be ints 1 <= q[m,n] <= 255
+const int Q_MATRIX[8][8] = {
+    {16, 11, 10, 16, 24, 40, 51, 61},
+    {12, 12, 14, 19, 26, 58, 60, 55},
+    {14, 13, 16, 24, 40, 57, 69, 56},
+    {14, 17, 22, 29, 51, 87, 80, 62},
+    {18, 22, 37, 56, 68, 109, 103, 77},
+    {24, 35, 55, 64, 81, 104, 113, 92},
+    {49, 64, 78, 87, 103, 121, 120, 101},
+    {72, 92, 95, 98, 112, 100, 103, 99}
+};
+
+const int ZIGZAG_ORDER[64] = {
+     0,  1,  5,  6, 14, 15, 27, 28,
+     2,  4,  7, 13, 16, 26, 29, 42,
+     3,  8, 12, 17, 25, 30, 41, 43,
+     9, 11, 18, 24, 31, 40, 44, 53,
+    10, 19, 23, 32, 39, 45, 52, 54,
+    20, 22, 33, 38, 46, 51, 55, 60,
+    21, 34, 37, 47, 50, 56, 59, 61,
+    35, 36, 48, 49, 57, 58, 62, 63
+};
 
 int check_dimensions(Image *images[], int count) {
     if (count == 0){
@@ -134,6 +159,26 @@ void DCT(const unsigned char block[64], float dct_block[64]){
         }
     }
 
+}
+
+// Fn. that reduces DCT coeffs. by dividing them with the 8x8 quantization matrix
+// goal would be to reduce high freq coeffs. more than low freq coeffs.
+void quantization(float dct_block[64], int quantized_block[64]){
+    const int N = 8;
+
+    for (int i=0; i < N; i++){
+        for (int j = 0; j < N; j++){
+            int index = i * N + j;
+            quantized_block[index] = (int)round(dct_block[index]) / Q_MATRIX[i][j];
+        }
+    }
+}
+
+// Fn. that orders quantized values into 1D array for RLE
+void zigzag_scanning(int quantized_block[64], int zigzag_block[64]){
+    for (int i = 0; i < 64; i++){
+        zigzag_block[i] = quantized_block[ZIGZAG_ORDER[i]];
+    }
 }
 
 void write_to_bitstream(const char *filename, unsigned char *Y, unsigned char *Cb, unsigned char *Cr, int width, int height){

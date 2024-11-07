@@ -129,10 +129,32 @@ int main() {
                 extract_8x8_block(Cb, images[i]->width / 2, x / 2, y / 2, Cb_block);
                 extract_8x8_block(Cr, images[i]->width / 2, x / 2, y / 2, Cr_block);
             
-                DCT(Cb_block, Cb_dct); // Apply DCT to Cb
-                DCT(Cr_block, Cr_dct); // Apply DCT to Cr
+                DCT(Cb_block, Cb_dct);
+                DCT(Cr_block, Cr_dct);
 
-                // TO DO NEXT: QUANTIZATION
+                // Quantization
+                int Y_quantized[4][64];
+                int Cb_quantized[64];
+                int Cr_quantized[64];
+
+                for (int block = 0; block < 4; block++){
+                    quantization(Y_dct_blocks[block], Y_quantized[block]);
+                }
+
+                quantization(Cb_dct, Cb_quantized);
+                quantization(Cr_dct, Cr_quantized);
+
+                // Zigzag scanning
+                int Y_zigzag[4][64];
+                int Cb_zigzag[64];
+                int Cr_zigzag[64];
+
+                for (int block = 0; block < 4; block++){
+                    zigzag_scanning(Y_quantized[block], Y_zigzag[block]);
+                }
+
+                zigzag_scanning(Cb_quantized, Cb_zigzag);
+                zigzag_scanning(Cr_quantized, Cr_zigzag);
             }
         }
 
