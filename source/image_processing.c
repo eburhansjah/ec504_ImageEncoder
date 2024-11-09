@@ -1,8 +1,37 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include<string.h>
+#include <math.h>
+
+#define PI 3.14159265358979323846
 
 #include "image_processing.h"
 
+// Change if needed
+// note: small quantization coeffs. retain more info from image
+//       large quantization coeffs. retain less info from image
+//       values are restricted to be ints 1 <= q[m,n] <= 255
+const int Q_MATRIX[8][8] = {
+    {16, 11, 10, 16, 24, 40, 51, 61},
+    {12, 12, 14, 19, 26, 58, 60, 55},
+    {14, 13, 16, 24, 40, 57, 69, 56},
+    {14, 17, 22, 29, 51, 87, 80, 62},
+    {18, 22, 37, 56, 68, 109, 103, 77},
+    {24, 35, 55, 64, 81, 104, 113, 92},
+    {49, 64, 78, 87, 103, 121, 120, 101},
+    {72, 92, 95, 98, 112, 100, 103, 99}
+};
+
+const int ZIGZAG_ORDER[64] = {
+     0,  1,  5,  6, 14, 15, 27, 28,
+     2,  4,  7, 13, 16, 26, 29, 42,
+     3,  8, 12, 17, 25, 30, 41, 43,
+     9, 11, 18, 24, 31, 40, 44, 53,
+    10, 19, 23, 32, 39, 45, 52, 54,
+    20, 22, 33, 38, 46, 51, 55, 60,
+    21, 34, 37, 47, 50, 56, 59, 61,
+    35, 36, 48, 49, 57, 58, 62, 63
+};
 
 int check_dimensions(Image *images[], int count) {
     if (count == 0){
@@ -87,6 +116,71 @@ void subsampling_420(unsigned char *Cb, unsigned char *Cr, int width, int height
             (*Cr_sub)[idx] = (Cr[y * width + x] + Cr[y * width + x + 1] + 
                               Cr[(y + 1) * width + x] + Cr[(y + 1) * width + x + 1]) / 4;
         }
+    }
+}
+
+// Fn. that extracts 8x8 blocks from Y, Cb, and Cr component
+// MPEG-1 operates on video in a picture resolution of 16x16, which includes subsampled blocks 
+// (4 for Y of size 8x8, one Cb of 8x8, and one Cr of 8x8)
+void extract_8x8_block(unsigned char *channel, int image_width, int start_x, int start_y, unsigned char block[64]) {
+    for (int row = 0; row < 8; row++) {
+        int source_idx = (start_y + row) * image_width + start_x;
+
+        // Copying 8 pixels per row; memcpy copies a block of mem. from one location to another 
+        memcpy(&block[row * 8], &channel[source_idx], 8);
+    }
+}
+
+// 2D-dimensional discrete cosine transform (2D DCT)
+// Fn. that transforms images into the frequency domain (important features are extracted in small number of DCT coeffs.)
+// DCT is applied to every block serially
+// ref: https://towardsdatascience.com/image-compression-dct-method-f2bb79419587
+//      https://stackoverflow.com/questions/8310749/discrete-cosine-transform-dct-implementation-c
+void DCT(const unsigned char block[64], float dct_block[64]){
+    const int N = 8; // JPEG algorithm standard
+    float c_u, c_v; // Normalization factors for frequency pair(u,v)
+    float sum;
+
+    // Computing u,vth entry of DCT of an image (freq.)
+    for (int u = 0; u < N; u++) {
+        for (int v = 0; v < N; v++) {
+            sum = 0.0; // Storing weighted sum of cosines
+
+            // Simplifying with the following vector representation
+            c_u = (u == 0) ? sqrt(1.0 / N) : sqrt(2.0 / N);
+            c_v = (v == 0) ? sqrt(1.0 / N) : sqrt(2.0 / N);
+
+            for (int x = 0; x < N; x++) {
+                for (int y = 0; y < N; y++) {
+                    float pixel = (float)block[y * N + x];
+                    sum += pixel * cos((2 * x + 1) * u * PI / (2.0 * N)) * cos((2 * y + 1) * v * PI / (2.0 * N));
+                }
+            }
+            dct_block[v * N + u] = c_u * c_v * sum;
+        }
+    }
+
+}
+
+// Fn. that reduces DCT coeffs. by dividing them with the 8x8 quantization matrix
+// goal would be to reduce high freq coeffs. more than low freq coeffs.
+// This is the only time we introduce errors in the encoder decoder system
+// ref: https://asecuritysite.com/comms/dct
+void quantization(float dct_block[64], int quantized_block[64]){
+    const int N = 8;
+
+    for (int i=0; i < N; i++){
+        for (int j = 0; j < N; j++){
+            int index = i * N + j;
+            quantized_block[index] = (int)round(dct_block[index]) / Q_MATRIX[i][j];
+        }
+    }
+}
+
+// Fn. that orders quantized values into 1D array for RLE
+void zigzag_scanning(int quantized_block[64], int zigzag_block[64]){
+    for (int i = 0; i < 64; i++){
+        zigzag_block[i] = quantized_block[ZIGZAG_ORDER[i]];
     }
 }
 
