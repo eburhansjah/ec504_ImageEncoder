@@ -135,6 +135,7 @@ void extract_8x8_block(unsigned char *channel, int image_width, int start_x, int
 // Fn. that transforms images into the frequency domain (important features are extracted in small number of DCT coeffs.)
 // DCT is applied to every block serially
 // ref: https://towardsdatascience.com/image-compression-dct-method-f2bb79419587
+//      https://stackoverflow.com/questions/8310749/discrete-cosine-transform-dct-implementation-c
 void DCT(const unsigned char block[64], float dct_block[64]){
     const int N = 8; // JPEG algorithm standard
     float c_u, c_v; // Normalization factors for frequency pair(u,v)
@@ -163,6 +164,8 @@ void DCT(const unsigned char block[64], float dct_block[64]){
 
 // Fn. that reduces DCT coeffs. by dividing them with the 8x8 quantization matrix
 // goal would be to reduce high freq coeffs. more than low freq coeffs.
+// This is the only time we introduce errors in the encoder decoder system
+// ref: https://asecuritysite.com/comms/dct
 void quantization(float dct_block[64], int quantized_block[64]){
     const int N = 8;
 
