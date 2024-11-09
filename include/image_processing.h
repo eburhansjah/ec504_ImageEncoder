@@ -12,5 +12,6 @@ void extract_8x8_block(unsigned char *channel, int image_width, int start_x, int
 void DCT(const unsigned char block[64], float dct_block[64]);
 void quantization(float dct_block[64], int quantized_block[64]);
 void zigzag_scanning(int quantized_block[64], int zigzag_block[64]);
+void print_array(int array[], int size);
 
 #endif // IMAGE_PROCESSING_H

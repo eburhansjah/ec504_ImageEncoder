@@ -3,7 +3,7 @@ init:
 
 # Compiler and flags
 CC := gcc
-CFLAGS := -I include 
+CFLAGS := -I include
 LDFLAGS := -lm # math libary should be specified only during the linking stage
 
 # Source files and output executable
@@ -20,7 +20,7 @@ all: $(TARGET)
 
 # Compile the executable
 $(TARGET): $(OBJ)
-	$(CC) -o $(TARGET) $(OBJ) $(LDLAGS) 
+	$(CC) -o $(TARGET) $(OBJ) $(LDFLAGS) 
 
 # Compile .c to .o files
 %.o: %.c

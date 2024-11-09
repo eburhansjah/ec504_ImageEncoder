@@ -184,6 +184,13 @@ void zigzag_scanning(int quantized_block[64], int zigzag_block[64]){
     }
 }
 
+void print_array(int arr[], int size) {
+    for (int i = 0; i < size; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+}
+
 void write_to_bitstream(const char *filename, unsigned char *Y, unsigned char *Cb, unsigned char *Cr, int width, int height){
     FILE *file = fopen(filename, "wb");
     if (!file) {
