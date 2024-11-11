@@ -6,6 +6,7 @@
 #define PI 3.14159265358979323846
 
 #include "image_processing.h"
+#include "global_variables.h"
 
 // Change if needed
 // note: small quantization coeffs. retain more info from image
@@ -189,6 +190,41 @@ void print_array(int arr[], int size) {
         printf("%d ", arr[i]);
     }
     printf("\n");
+}
+
+
+int* run_length_encode(int zigzag_block[64], int encoded_array[128]) { 
+ 
+    int encoded_int;
+    int index = 0;
+    int j = 0;
+    
+    for (int i = 0; i < 64; i++) {
+        int count = 1;
+        encoded_int = zigzag_block[i];
+        
+        while (i + 1 < 64 && zigzag_block[i] == zigzag_block[i + 1]) {
+            count++;
+            i++;
+        }
+
+        
+        // encode 'runs' into return array
+        encoded_array[index] = encoded_int;
+        index++;
+        encoded_array[index] = count;
+        index++;
+        j++;
+    }
+    
+    int *return_array = malloc(j*sizeof(int));
+    if (!return_array){
+        return NULL;
+    }
+    for (int i = 0; i < j; i++) {
+        return_array[i] = encoded_array[i];
+    }
+    return return_array;
 }
 
 void write_to_bitstream(const char *filename, unsigned char *Y, unsigned char *Cb, unsigned char *Cr, int width, int height){

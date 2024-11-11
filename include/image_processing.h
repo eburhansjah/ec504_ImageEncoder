@@ -13,5 +13,6 @@ void DCT(const unsigned char block[64], float dct_block[64]);
 void quantization(float dct_block[64], int quantized_block[64]);
 void zigzag_scanning(int quantized_block[64], int zigzag_block[64]);
 void print_array(int array[], int size);
+int* run_length_encode(int array[64], int encode_array[128]);
 
 #endif // IMAGE_PROCESSING_H

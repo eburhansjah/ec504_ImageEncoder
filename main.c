@@ -156,7 +156,10 @@ int main() {
 
                 zigzag_scanning(Cb_quantized, Cb_zigzag);
                 zigzag_scanning(Cr_quantized, Cr_zigzag);
-                //print_array(Cb_quantized, 64); // checking outputs
+                
+                int encoded_array[128];
+                int* RLE_array = run_length_encode(Cb_zigzag, encoded_array);
+                //print_array(RLE_array, sizeof(RLE_array)); // checking outputs
             }
         }
         
