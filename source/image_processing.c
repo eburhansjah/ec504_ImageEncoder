@@ -131,7 +131,7 @@ void extract_8x8_block(unsigned char *channel, int image_width, int start_x, int
     }
 }
 
-// 2D-dimensional discrete cosine transform (2D DCT)
+// 2 dimensional discrete cosine transform (2D DCT)
 // Fn. that transforms images into the frequency domain (important features are extracted in small number of DCT coeffs.)
 // DCT is applied to every block serially
 // ref: https://towardsdatascience.com/image-compression-dct-method-f2bb79419587
@@ -181,6 +181,20 @@ void quantization(float dct_block[64], int quantized_block[64]){
 void zigzag_scanning(int quantized_block[64], int zigzag_block[64]){
     for (int i = 0; i < 64; i++){
         zigzag_block[i] = quantized_block[ZIGZAG_ORDER[i]];
+    }
+}
+
+// Fn. for dequantization (decoding)
+// Quantized block are multipliedd by the Q matrix to get DCT values back before running Inverse DCT
+// ref: https://ayushijani.github.io/Projectcontent.html
+void dequantization(float quantized_block[64], int dct_block[64]){
+    const int N = 8;
+
+    for (int i=0; i < N; i++){
+        for (int j = 0; j < N; j++){
+            int index = i * N + j;
+            dct_block[index] = quantized_block[index] * Q_MATRIX[i][j];
+        }
     }
 }
 
