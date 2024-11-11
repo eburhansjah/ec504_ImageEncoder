@@ -7,7 +7,7 @@ CFLAGS := -I include
 LDFLAGS := -lm # math libary should be specified only during the linking stage
 
 # Source files and output executable
-SRC := main.c source/image_processing.c source/jpeg_handler.c
+SRC := main.c source/image_processing.c source/jpeg_handler.c source/global_variables.c
 OBJ = $(SRC:.c=.o)
 TARGET := encoder
 
