@@ -196,10 +196,26 @@ void write_to_bitstream(const char *filename, unsigned char *Y, unsigned char *C
     fwrite(&width, sizeof(int), 1, file);
     fwrite(&height, sizeof(int), 1, file);
 
-    fwrite(Y, 1, width * height, file); 
-    fwrite(Cb, 1, width * height, file);
-    fwrite(Cr, 1, width * height, file);
+    // Allocating a contiguous buffer for Y, Cb, Cr components and perform single fwrite call
+    size_t total_size = (width * height * 3);
+    unsigned char *buffer = (unsigned char*) malloc(total_size);
 
+    if (!buffer){
+        printf("Error: Failed to allocate memory for a buffer.\n");
+        fclose(file);
+        return;
+    }
+
+    // Filling in buffer after mem. allocation
+    // Visualization of buffer:
+    // | Y_data (width * height bytes) | Cb_data (width * height bytes) | Cr_data (width * height bytes) |
+    memcpy(buffer, Y, width * height);
+    memcpy(buffer + width * height, Cb, width * height);
+    memcpy(buffer + (2 * width * height), Cr, width * height);
+
+    fwrite(buffer, 1, total_size, file);
+
+    free(buffer);
     fclose(file);
     printf("Bitstream written for %s.\n", filename);
 }
