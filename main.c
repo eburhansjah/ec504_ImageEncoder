@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "image_processing.h"
@@ -150,8 +151,14 @@ int main() {
                 int Cr_zigzag[64];
                 zigzag_scanning(Cb_quantized, Cb_zigzag);
                 zigzag_scanning(Cr_quantized, Cr_zigzag);
+                
+                int encoded_array[128];
+                //printf("Original array:");
+                //print_array(Cb_zigzag, sizeof(Cb_zigzag));
+                int* RLE_array = run_length_encode(Cb_zigzag, encoded_array);
             }
         }
+        
 
         // Creating unique bitstream file names
         char bitstream_filename[256];
