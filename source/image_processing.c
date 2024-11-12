@@ -384,39 +384,43 @@ void print_array(int arr[], int size) {
 
 
 int* run_length_encode(int zigzag_block[64], int encoded_array[128]) { 
- 
+    
     int encoded_int = 0;
     int index = 0;
     int count = 1;
     
     encoded_int = zigzag_block[0];
-    for (int i = 0; i < sizeof(zigzag_block); i++) {
-        
+    
+    for (int i = 0; i < 64; i++) {
+        count = 1;
         //printf("encoded int: %d \n", zigzag_block[i]);
+        //encoded_array[index++] = zigzag_block[i];
         
-        if (zigzag_block[i] == zigzag_block[i+1]) {
-            count++;
-            //encoded_int = zigzag_block[i];
+        if (zigzag_block[i] != zigzag_block[i+1] && zigzag_block[i-1] != zigzag_block[i+1]) {
+            encoded_array[index++] = zigzag_block[i];
+            encoded_array[index++] = count;
+            
         }
         else {
-            encoded_array[index++] = encoded_int;
+            encoded_array[index++] = zigzag_block[i];
+            while (zigzag_block[i] == zigzag_block[i+1] && i + 1 < 64) {
+                count++;
+                i++;
+            }
             encoded_array[index++] = count;
-            count = 1;
-            encoded_int = zigzag_block[i+1];
-        }       
+        }
+        
     }
     
-
+    index = index - 2;
     int *return_array = (int*)malloc(index * sizeof(int));
-    //printf("\nindex: %d, sizeof return_array: %d \n", index, sizeof(return_array));
     if (!return_array){
         return NULL;
     }
     for (int i = 0; i < index; i++) {
         return_array[i] = encoded_array[i];
     }
-    //printf("Return array:");
-    //print_array(return_array, index);
+    print_array(return_array, index);
     return return_array;
 }
 
