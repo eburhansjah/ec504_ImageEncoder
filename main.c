@@ -197,13 +197,9 @@ int main() {
                 printf("\n");
                 
                 int encoded_array[128];
+
                 printf("RLE array for Cb component:\n");
                 int* RLE_array_Cb = run_length_encode(Cb_zigzag, encoded_array);
-
-                // printf("RLE array for Cb component:\n");
-                // for (int i = 0; RLE_array_Cb[i] != '\0'; i += 2) {
-                //     printf("Value: %d, Count: %d\n", RLE_array_Cb[i], RLE_array_Cb[i+1]);
-                // }
 
                 free(RLE_array_Cb);
             }
