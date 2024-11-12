@@ -392,14 +392,13 @@ int* run_length_encode(int zigzag_block[64], int encoded_array[128]) {
     encoded_int = zigzag_block[0];
     
     for (int i = 0; i < 64; i++) {
-        count = 1;
+        
         //printf("encoded int: %d \n", zigzag_block[i]);
         //encoded_array[index++] = zigzag_block[i];
         
         if (zigzag_block[i] != zigzag_block[i+1] && zigzag_block[i-1] != zigzag_block[i+1]) {
             encoded_array[index++] = zigzag_block[i];
             encoded_array[index++] = count;
-            
         }
         else {
             encoded_array[index++] = zigzag_block[i];
@@ -408,11 +407,16 @@ int* run_length_encode(int zigzag_block[64], int encoded_array[128]) {
                 i++;
             }
             encoded_array[index++] = count;
+            //if (i == 64) {
+            //     encoded_array[index++] = zigzag_block[i];
+            //     encoded_array[index++] = count;
+            //}
+            count = 1;
         }
         
     }
     
-    index = index - 2;
+    index = index;
     int *return_array = (int*)malloc(index * sizeof(int));
     if (!return_array){
         return NULL;
