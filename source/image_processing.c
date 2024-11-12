@@ -23,16 +23,25 @@ const int Q_MATRIX[8][8] = {
     {72, 92, 95, 98, 112, 100, 103, 99}
 };
 
-const int ZIGZAG_ORDER[64] = {
-     0,  1,  5,  6, 14, 15, 27, 28,
-     2,  4,  7, 13, 16, 26, 29, 42,
-     3,  8, 12, 17, 25, 30, 41, 43,
-     9, 11, 18, 24, 31, 40, 44, 53,
-    10, 19, 23, 32, 39, 45, 52, 54,
-    20, 22, 33, 38, 46, 51, 55, 60,
-    21, 34, 37, 47, 50, 56, 59, 61,
-    35, 36, 48, 49, 57, 58, 62, 63
+const int ZIGZAG_ORDER[8][8] = {
+     { 0,  1,  5,  6, 14, 15, 27, 28 },
+     { 2,  4,  7, 13, 16, 26, 29, 42 },
+     { 3,  8, 12, 17, 25, 30, 41, 43 },
+     { 9, 11, 18, 24, 31, 40, 44, 53 },
+     { 10, 19, 23, 32, 39, 45, 52, 54 },
+     { 20, 22, 33, 38, 46, 51, 55, 60 },
+     { 21, 34, 37, 47, 50, 56, 59, 61 },
+     { 35, 36, 48, 49, 57, 58, 62, 63 }
 };
+
+// Constants for fast_DCT (implementation with Fast Fourier Transform)
+static const int c1 = 1004; // cos(pi/16) << 10
+static const int s1 = 200;  // sin(pi/16)
+static const int c3 = 851;  // cos(3pi/16) << 10
+static const int s3 = 569;  // sin(3pi/16)
+static const int r2c6 = 554; // sqrt(2)*cos(6pi/16) << 10
+static const int r2s6 = 1337; // sqrt(2)*sin(6pi/16) << 10
+static const int r2 = 181;    // sqrt(2) << 7
 
 int check_dimensions(Image *images[], int count) {
     if (count == 0){
@@ -123,16 +132,21 @@ void subsampling_420(unsigned char *Cb, unsigned char *Cr, int width, int height
 // Fn. that extracts 8x8 blocks from Y, Cb, and Cr component
 // MPEG-1 operates on video in a picture resolution of 16x16, which includes subsampled blocks 
 // (4 for Y of size 8x8, one Cb of 8x8, and one Cr of 8x8)
-void extract_8x8_block(unsigned char *channel, int image_width, int start_x, int start_y, unsigned char block[64]) {
-    for (int row = 0; row < 8; row++) {
-        int source_idx = (start_y + row) * image_width + start_x;
+void extract_8x8_block(unsigned char *channel, int image_width, int start_x, int start_y, unsigned char block[8][8]) {
+    // for (int row = 0; row < 8; row++) {
+    //     int source_idx = (start_y + row) * image_width + start_x;
 
-        // Copying 8 pixels per row; memcpy copies a block of mem. from one location to another 
-        memcpy(&block[row * 8], &channel[source_idx], 8);
+    //     // Copying 8 pixels per row; memcpy copies a block of mem. from one location to another 
+    //     memcpy(&block[row * 8], &channel[source_idx], 8);
+    // }
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            block[i][j] = channel[(start_y + i) * image_width + (start_x + j)];
+        }
     }
 }
 
-// 2D-dimensional discrete cosine transform (2D DCT)
+// 2 dimensional discrete cosine transform (2D DCT)
 // Fn. that transforms images into the frequency domain (important features are extracted in small number of DCT coeffs.)
 // DCT is applied to every block serially
 // ref: https://towardsdatascience.com/image-compression-dct-method-f2bb79419587
@@ -154,7 +168,9 @@ void DCT(const unsigned char block[64], float dct_block[64]){
             for (int x = 0; x < N; x++) {
                 for (int y = 0; y < N; y++) {
                     float pixel = (float)block[y * N + x];
-                    sum += pixel * cos((2 * x + 1) * u * PI / (2.0 * N)) * cos((2 * y + 1) * v * PI / (2.0 * N));
+                    sum += pixel * 
+                            cos((2 * x + 1) * u * PI / (2.0 * N)) * 
+                            cos((2 * y + 1) * v * PI / (2.0 * N));
                 }
             }
             dct_block[v * N + u] = c_u * c_v * sum;
@@ -163,26 +179,144 @@ void DCT(const unsigned char block[64], float dct_block[64]){
 
 }
 
+// Fn. that does 2D DCT with Fast Fourier Transform
+// significantly reduces run time to n log n from n^4
+// ref: https://unix4lyfe.org/dct/
+//      It is based on the AAN algorithm:
+//          Y. Arai, T. Agui, and M. Nakajima, “A fast DCT-SQ scheme for
+//      images,” Transactions of the IEICE, vol. 71, no. 11, pp. 1095–
+//      1097, 1988.
+void fast_DCT(const unsigned char block[8][8], double dct_block[8][8]){
+    const int N = 8;
+    int rows[8][8];
+    int x0, x1, x2, x3, x4, x5, x6, x7, x8;
+
+    // Transform rows
+    for(int i = 0; i < N; i++){
+        x0 = block[i][0];
+        x1 = block[i][1];
+        x2 = block[i][2];
+        x3 = block[i][3];
+        x4 = block[i][4];
+        x5 = block[i][5];
+        x6 = block[i][6];
+        x7 = block[i][7];
+
+        // Stage 1
+        x8 = x7 + x0;
+        x0 -= x7;
+        x7 = x1 + x6;
+        x1 -= x6;
+        x6 = x2 + x5;
+        x2 -= x5;
+        x5 = x3 + x4;
+        x3 -= x4;
+
+        // Stage 2
+        x4 = x8 + x5;
+        x8 -= x5;
+        x5 = x7 + x6;
+        x7 -= x6;
+        x6 = c1 * (x1 + x2);
+        x2 = (-s1 - c1) * x2 + x6;
+        x1 = (s1 - c1) * x1 + x6;
+        x6 = c3 * (x0 + x3);
+        x3 = (-s3 - c3) * x3 + x6;
+        x0 = (s3 - c3) * x0 + x6;
+
+        // Stage 3
+        x6 = x4 + x5;
+        x4 -= x5;
+        x5 = r2c6 * (x7 + x8);
+        x7 = (-r2s6 - r2c6) * x7 + x5;
+        x8 = (r2s6 - r2c6) * x8 + x5;
+        x5 = x0 + x2;
+        x0 -= x2;
+        x2 = x3 + x1;
+        x3 -= x1;
+
+        // Stage 4 and output
+        rows[i][0] = x6;
+        rows[i][4] = x4;
+        rows[i][2] = x8 >> 10;
+        rows[i][6] = x7 >> 10;
+        rows[i][7] = (x2 - x5) >> 10;
+        rows[i][1] = (x2 + x5) >> 10;
+        rows[i][3] = (x3 * r2) >> 17;
+        rows[i][5] = (x0 * r2) >> 17;
+    }
+}
+
 // Fn. that reduces DCT coeffs. by dividing them with the 8x8 quantization matrix
 // goal would be to reduce high freq coeffs. more than low freq coeffs.
 // This is the only time we introduce errors in the encoder decoder system
 // ref: https://asecuritysite.com/comms/dct
-void quantization(float dct_block[64], int quantized_block[64]){
+void quantization(double dct_block[8][8], int quantized_block[8][8]){
     const int N = 8;
 
     for (int i=0; i < N; i++){
         for (int j = 0; j < N; j++){
-            int index = i * N + j;
-            quantized_block[index] = (int)round(dct_block[index]) / Q_MATRIX[i][j];
+            quantized_block[i][j] = (int)round(dct_block[i][j]) / Q_MATRIX[i][j];
         }
     }
 }
 
 // Fn. that orders quantized values into 1D array for RLE
-void zigzag_scanning(int quantized_block[64], int zigzag_block[64]){
-    for (int i = 0; i < 64; i++){
-        zigzag_block[i] = quantized_block[ZIGZAG_ORDER[i]];
+void zigzag_scanning(int quantized_block[8][8], int zigzag_array[64]){
+    const int N = 8;
+
+    for (int i = 0; i < N; i++){
+        for (int j = 0; j < N; j++){
+            zigzag_array[ZIGZAG_ORDER[i][j]] = quantized_block[i][j];
+        }
     }
+}
+
+// Fn. for dequantization (decoding)
+// Quantized block are multipliedd by the Q matrix to get DCT values back before running Inverse DCT
+// ref: https://ayushijani.github.io/Projectcontent.html
+void dequantization(int quantized_block[8][8], double dct_block[8][8]){
+    const int N = 8;
+
+    for (int i=0; i < N; i++){
+        for (int j = 0; j < N; j++){
+            dct_block[i][j] = quantized_block[i][j] * Q_MATRIX[i][j];
+        }
+    }
+}
+
+// 2 dimensional discrete inverse cosine transform (2D IDCT)
+// Fn. that converts freq. domain coeffs. back into spatial domain
+// ref: https://www.imageeprocessing.com/2013/03/2-d-inverse-discrete-cosine-transform.html
+//      https://unix4lyfe.org/dct/
+void IDCT(const float dct_block[64], unsigned char block[64]){
+    const int N = 8; // JPEG algorithm standard
+    float c_u, c_v; // Normalization factors for frequency pair(u,v)
+    float sum;
+
+    // Computing x, y entries of IDCT
+    for (int x = 0; x < N; x++) {
+        for (int y = 0; y < N; y++) {
+            sum = 0.0; // Storing weighted sum of cosines
+
+            for (int u = 0; u < N; u++) {
+                for (int v = 0; v < N; v++) {
+                    // Computing normalization factors
+                    c_u = (u == 0) ? sqrt(1.0 / N) : sqrt(2.0 / N);
+                    c_v = (v == 0) ? sqrt(1.0 / N) : sqrt(2.0 / N);
+                    
+                    sum += c_u * c_v * dct_block[v * N + u] *
+                           cos((2 * x + 1) * u * PI / (2.0 * N)) *
+                           cos((2 * y + 1) * v * PI / (2.0 * N));
+                }
+            }
+
+            // Limiting output to fit in the 8-bit unsigned char range of [0, 255]
+            int pixel_value = (int)round(sum);
+            block[y * N + x] = (unsigned char)(pixel_value < 0 ? 0 : (pixel_value > 255 ? 255 : pixel_value));
+        }
+    }
+
 }
 
 void print_array(int arr[], int size) {
@@ -242,10 +376,26 @@ void write_to_bitstream(const char *filename, unsigned char *Y, unsigned char *C
     fwrite(&width, sizeof(int), 1, file);
     fwrite(&height, sizeof(int), 1, file);
 
-    fwrite(Y, 1, width * height, file); 
-    fwrite(Cb, 1, width * height, file);
-    fwrite(Cr, 1, width * height, file);
+    // Allocating a contiguous buffer for Y, Cb, Cr components and perform single fwrite call
+    size_t total_size = (width * height * 3);
+    unsigned char *buffer = (unsigned char*) malloc(total_size);
 
+    if (!buffer){
+        printf("Error: Failed to allocate memory for a buffer.\n");
+        fclose(file);
+        return;
+    }
+
+    // Filling in buffer after mem. allocation
+    // Visualization of buffer:
+    // | Y_data (width * height bytes) | Cb_data (width * height bytes) | Cr_data (width * height bytes) |
+    memcpy(buffer, Y, width * height);
+    memcpy(buffer + width * height, Cb, width * height);
+    memcpy(buffer + (2 * width * height), Cr, width * height);
+
+    fwrite(buffer, 1, total_size, file);
+
+    free(buffer);
     fclose(file);
     printf("Bitstream written for %s.\n", filename);
 }
