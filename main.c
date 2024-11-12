@@ -153,7 +153,7 @@ int main() {
                 zigzag_scanning(Cr_quantized, Cr_zigzag);
                 
                 int encoded_array[128];
-                print_array(Cb_zigzag, 64);
+                //print_array(Cb_zigzag, 64);
                 int* RLE_array = run_length_encode(Cb_zigzag, encoded_array);
             }
         }
