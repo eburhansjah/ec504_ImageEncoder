@@ -123,22 +123,23 @@ int main() {
     //             int Y_quantized[4][8][8];
     //             int Y_zigzag[4][64];
 
-    //             for (int block = 0; block < 4; block++) {
-    //                 int x_start_pos = x + (block % 2) * 8;
-    //                 int y_start_pos = y + (block / 2) * 8;
+                int encoded_array[128];
+
+                for (int block = 0; block < 4; block++) {
+                    int x_start_pos = x + (block % 2) * 8;
+                    int y_start_pos = y + (block / 2) * 8;
 
     //                 extract_8x8_block(Y, images[i]->width, x_start_pos, y_start_pos, Y_blocks[block]);
 
-    //                 // DCT(Y_blocks[block], Y_dct_blocks[block]);
-    //                 fast_DCT(Y_blocks[block], Y_dct_blocks[block]);
-    //                 // // Printing transformed DCT coeffs. 
-    //                 // printf("Fast DCT on Y Block:\n");
-    //                 // for (int i = 0; i < 8; i++) {
-    //                 //     for (int j = 0; j < 8; j++) {
-    //                 //         printf("%8.2f ", Y_dct_blocks[0][i][j]);
-    //                 //     }
-    //                 //     printf("\n");
-    //                 // }
+                    fast_DCT(Y_blocks[block], Y_dct_blocks[block]);
+                    // // Printing transformed DCT coeffs. 
+                    // printf("Fast DCT on Y Block:\n");
+                    // for (int i = 0; i < 8; i++) {
+                    //     for (int j = 0; j < 8; j++) {
+                    //         printf("%8.2f ", Y_dct_blocks[0][i][j]);
+                    //     }
+                    //     printf("\n");
+                    // }
 
     //                 quantization(Y_dct_blocks[block], Y_quantized[block]);
     //                 // // Printing quantization result on Y block
@@ -150,14 +151,15 @@ int main() {
     //                 //     printf("\n");
     //                 // }
 
-    //                 zigzag_scanning(Y_quantized[block], Y_zigzag[block]);
-    //                 // // Printing zigzag scanning result on Y block
-    //                 // printf("Zigzag Scanned Coeffs. on Y Block:\n");
-    //                 // for (int i = 0; i < 64; i++) {
-    //                 //     printf("%4d ", Y_zigzag[0][i]);
-    //                 // }
-    //                 // printf("\n");
-    //             }
+                    zigzag_scanning(Y_quantized[block], Y_zigzag[block]);
+                    // // Printing zigzag scanning result on Y block
+                    // printf("Zigzag Scanned Coeffs. on Y Block:\n");
+                    // for (int i = 0; i < 64; i++) {
+                    //     printf("%4d ", Y_zigzag[0][i]);
+                    // }
+                    // printf("\n");
+                    int *Y_RLE = run_length_encode(Y_zigzag[i], encoded_array);
+                }
 
     //             // Diving Cb and Cr each into 1 8x8 block
     //             unsigned char Cb_block[8][8], Cr_block[8][8];
@@ -166,10 +168,8 @@ int main() {
     //             extract_8x8_block(Cb, images[i]->width / 2, x / 2, y / 2, Cb_block);
     //             extract_8x8_block(Cr, images[i]->width / 2, x / 2, y / 2, Cr_block);
             
-    //             // DCT(Cb_block, Cb_dct);
-    //             // DCT(Cr_block, Cr_dct);
-    //             fast_DCT(Cb_block, Cb_dct);
-    //             fast_DCT(Cr_block, Cr_dct);
+                fast_DCT(Cb_block, Cb_dct);
+                fast_DCT(Cr_block, Cr_dct);
 
     //             // printf("Fast DCT on Cb Block:\n");
     //             // for (int i = 0; i < 8; i++) {
@@ -197,20 +197,16 @@ int main() {
     //             zigzag_scanning(Cb_quantized, Cb_zigzag);
     //             zigzag_scanning(Cr_quantized, Cr_zigzag);
 
-    //             printf("Zigzag Scanned Coeffs. on Cb Block:\n");
-    //             for (int i = 0; i < 64; i++) {
-    //                 printf("%4d ", Cb_zigzag[i]);
-    //             }
-    //             printf("\n");
-                
-    //             int encoded_array[128];
+                printf("Zigzag Scanned Coeffs. on Cb Block:\n");
+                for (int i = 0; i < 64; i++) {
+                    printf("%4d ", Cb_zigzag[i]);
+                }
+                printf("\n");
 
-    //             printf("RLE array for Cb component:\n");
-    //             int* RLE_array_Cb = run_length_encode(Cb_zigzag, encoded_array);
-
-    //             free(RLE_array_Cb);
-    //         }
-    //     }
+                int *Cb_RLE = run_length_encode(Cb_zigzag, encoded_array);
+                int *Cr_RLE = run_length_encode(Cr_zigzag, encoded_array);
+            }
+        }
         
 
     //     // Creating unique bitstream file names
