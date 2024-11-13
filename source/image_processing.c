@@ -43,26 +43,6 @@ static const int r2c6 = 554; // sqrt(2)*cos(6pi/16) << 10
 static const int r2s6 = 1337; // sqrt(2)*sin(6pi/16) << 10
 static const int r2 = 181;    // sqrt(2) << 7
 
-int check_dimensions(Image *images[], int count) {
-    if (count == 0){
-        printf("No images found in directory.\n");
-        return 0;
-    }
-
-    int width = images[0]->width;
-    int height = images[0]->height;
-
-    for (int i = 1; i < count; i++) {
-        if (images[i]->width != width || images[i]->height != height) {
-            printf("Error: Image dimensions do not match\n");
-            return 0;
-        }
-    }
-
-    printf("Images have matching dimensions of width = %d and height = %d\n", width, height);
-    return 1;
-}
-
 void convert_rgb_to_ycbcr(Image *img, unsigned char **Y, unsigned char **Cb, unsigned char **Cr){
     if(img->channels < 3){
         printf("Error: Image does not have correct color channels for RBG to YCbCr conversion.\n");
@@ -534,31 +514,25 @@ void upsampling(unsigned char *Cb_sub, unsigned char *Cr_sub, int width, int hei
     }
 }
 
+// Fn. that reverses extract_8x8_block function
+void insert_8x8_block(unsigned char *channel, int image_width, int start_x, int start_y, unsigned char block[8][8]){
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            channel[(start_y + i) * image_width + (start_x + j)] = block[i][j];
+        }
+    }
+}
+
 // Fn. that converts YCbCr to RGB color space back
-void convert_ycbcr_to_rgb(unsigned char *Y, unsigned char *Cb, unsigned char *Cr, Image *img){
-    if(img->channels < 3){
-        printf("Error: Image does not have correct color channels for YCbCr to RGB conversion.\n");
-        return;
-    }
-
-    int width = img->width;
-    int height = img->height;
+void convert_ycbcr_to_rgb(unsigned char *Y, unsigned char *Cb, unsigned char *Cr, unsigned char *rgb, int width, int height){
     int total_pixels = width * height;
-
-    // Allocating memory for RGB image
-    img->data = (unsigned char *)malloc(total_pixels * img->channels);
-    if (img->data == NULL) {
-        printf("Error: Failed to allocate memory for RGB image.\n");
-        
-        return;
-    }
 
     // Converting YCbCr to RGB
     for (int i = 0; i < total_pixels; i++) {
         // Current Y, Cb, Cr values
-        unsigned char y = img->data[i];
-        unsigned char cb = img->data[i];
-        unsigned char cr = img->data[i];
+        unsigned char y = Y[i];
+        unsigned char cb = Cb[i];
+        unsigned char cr = Cr[i];
 
         // Based on the ITU-R BT.601 (Rec. 601) standard:
         // ref: https://en.wikipedia.org/wiki/Y′UV
@@ -572,12 +546,13 @@ void convert_ycbcr_to_rgb(unsigned char *Y, unsigned char *Cb, unsigned char *Cr
         g = (g < 0) ? 0 : (g > 255) ? 255 : g;
         b = (b < 0) ? 0 : (b > 255) ? 255 : b;
 
-        int index = i * img->channels;
-        img->data[index] = (unsigned char)r;
-        img->data[index + 1] = (unsigned char)g;
-        img->data[index + 2] = (unsigned char)b;
+        int index = i * 3; // 3 channels per pixel (RGB)
+        rgb[index] = (unsigned char)r;
+        rgb[index + 1] = (unsigned char)g;
+        rgb[index + 2] = (unsigned char)b;
     }
-    printf("Image converted from RGB to YCbCr.\n");
+
+    printf("Image converted from YCbCr to RGB.\n");
 }
 
 void print_array(int arr[], int size) {

@@ -27,3 +27,23 @@ void free_image(Image *img){
         free(img);
     }
 }
+
+int check_dimensions(Image *images[], int count) {
+    if (count == 0){
+        printf("No images found in directory.\n");
+        return 0;
+    }
+
+    int width = images[0]->width;
+    int height = images[0]->height;
+
+    for (int i = 1; i < count; i++) {
+        if (images[i]->width != width || images[i]->height != height) {
+            printf("Error: Image dimensions do not match\n");
+            return 0;
+        }
+    }
+
+    printf("Images have matching dimensions of width = %d and height = %d\n", width, height);
+    return 1;
+}
