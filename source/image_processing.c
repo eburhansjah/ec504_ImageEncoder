@@ -498,6 +498,42 @@ void fast_IDCT(const double dct_block[8][8], unsigned char block[8][8]){
     }
 }
 
+// Fn. that does the reversing of subsampling_420()
+// Goal is to upsample each Cb and Cr value back to 2x2 block
+void upsampling(unsigned char *Cb_sub, unsigned char *Cr_sub, int width, int height, unsigned char **Cb, unsigned char **Cr){
+    int sub_width = width / 2;
+    int sub_height = height / 2;
+
+    *Cb = (unsigned char *)malloc(width * height);
+    *Cr = (unsigned char *)malloc(width * height);
+
+    // We are iterating over each subsampled pixel and expanding it to a 2x2 block
+    for (int y = 0; y < sub_height; y ++) {
+        for (int x = 0; x < sub_width; x++) {
+            int idx_sub = y * sub_width + x;
+
+            // Instead of replacing 2x2 block for both Cb and Cr with their average values,
+            // We are filling in the 2x2 block, copying subsampled values
+            // into their respective locations to achieve a full resolution
+            int idx_up_1 = (2 * y) * width + (2 * x);
+            int idx_up_2 = (2 * y) * width + (2 * x + 1);
+            int idx_up_3 = (2 * y + 1) * width + (2 * x);
+            int idx_up_4 = (2 * y + 1) * width + (2 * x + 1);
+
+            (*Cb)[idx_up_1] = Cb_sub[idx_sub];
+            (*Cb)[idx_up_2] = Cb_sub[idx_sub];
+            (*Cb)[idx_up_3] = Cb_sub[idx_sub];
+            (*Cb)[idx_up_4] = Cb_sub[idx_sub];
+
+            (*Cr)[idx_up_1] = Cr_sub[idx_sub];
+            (*Cr)[idx_up_2] = Cr_sub[idx_sub];
+            (*Cr)[idx_up_3] = Cr_sub[idx_sub];
+            (*Cr)[idx_up_4] = Cr_sub[idx_sub];
+        }
+    }
+}
+
+
 
 void print_array(int arr[], int size) {
     for (int i = 0; i < size; i++) {

@@ -19,6 +19,9 @@ void dequantization(int quantized_block[8][8], double dct_block[8][8]);
 void IDCT(const float dct_block[64], unsigned char block[64]);
 void fast_IDCT(const double dct_block[8][8], unsigned char block[8][8]);
 
+void upsampling(unsigned char *Cb_sub, unsigned char *Cr_sub, int width, int height, unsigned char **Cb, unsigned char **Cr);
+
+
 void print_array(int array[], int size);
 
 #endif // IMAGE_PROCESSING_H
