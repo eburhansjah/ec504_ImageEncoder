@@ -116,13 +116,14 @@ int main() {
                 int Y_quantized[4][8][8];
                 int Y_zigzag[4][64];
 
+                int encoded_array[128];
+
                 for (int block = 0; block < 4; block++) {
                     int x_start_pos = x + (block % 2) * 8;
                     int y_start_pos = y + (block / 2) * 8;
 
                     extract_8x8_block(Y, images[i]->width, x_start_pos, y_start_pos, Y_blocks[block]);
 
-                    // DCT(Y_blocks[block], Y_dct_blocks[block]);
                     fast_DCT(Y_blocks[block], Y_dct_blocks[block]);
                     // // Printing transformed DCT coeffs. 
                     // printf("Fast DCT on Y Block:\n");
@@ -150,6 +151,7 @@ int main() {
                     //     printf("%4d ", Y_zigzag[0][i]);
                     // }
                     // printf("\n");
+                    int *Y_RLE = run_length_encode(Y_zigzag[i], encoded_array);
                 }
 
                 // Diving Cb and Cr each into 1 8x8 block
@@ -159,8 +161,6 @@ int main() {
                 extract_8x8_block(Cb, images[i]->width / 2, x / 2, y / 2, Cb_block);
                 extract_8x8_block(Cr, images[i]->width / 2, x / 2, y / 2, Cr_block);
             
-                // DCT(Cb_block, Cb_dct);
-                // DCT(Cr_block, Cr_dct);
                 fast_DCT(Cb_block, Cb_dct);
                 fast_DCT(Cr_block, Cr_dct);
 
@@ -195,13 +195,9 @@ int main() {
                     printf("%4d ", Cb_zigzag[i]);
                 }
                 printf("\n");
-                
-                int encoded_array[128];
 
-                printf("RLE array for Cb component:\n");
-                int* RLE_array_Cb = run_length_encode(Cb_zigzag, encoded_array);
-
-                free(RLE_array_Cb);
+                int *Cb_RLE = run_length_encode(Cb_zigzag, encoded_array);
+                int *Cr_RLE = run_length_encode(Cr_zigzag, encoded_array);
             }
         }
         
