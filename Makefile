@@ -3,11 +3,11 @@ init:
 
 # Compiler and flags
 CC := gcc
-CFLAGS := -I include
+CFLAGS := -g -I include
 LDFLAGS := -lm # math libary should be specified only during the linking stage
 
 # Source files and output executable
-SRC := main.c source/image_processing.c source/jpeg_handler.c source/global_variables.c
+SRC := main.c source/image_processing.c source/jpeg_handler.c source/global_variables.c source/mpeg1_enc.c
 OBJ = $(SRC:.c=.o)
 TARGET := encoder
 
