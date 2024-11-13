@@ -98,6 +98,7 @@ void convert_rgb_to_ycbcr(Image *img, unsigned char **Y, unsigned char **Cb, uns
         // YCbCr assumes that R, G, B are 8 bits unsigned ints in range [0, 255]
         // Range of Cb Cr has 128 added as an offset ensures that result is always positive (full range)
         // ref: https://stackoverflow.com/questions/58676546/i-m-confused-with-how-to-convert-rgb-to-ycrcb
+        //      https://en.wikipedia.org/wiki/Y′UV
         (*Y)[i]  = (unsigned char)(0.299 * r + 0.587 * g + 0.114 * b);
         (*Cb)[i] = (unsigned char)(128 - 0.168736 * r - 0.331264 * g + 0.5 * b);
         (*Cr)[i] = (unsigned char)(128 + 0.5 * r - 0.418688 * g - 0.081312 * b);
@@ -533,7 +534,51 @@ void upsampling(unsigned char *Cb_sub, unsigned char *Cr_sub, int width, int hei
     }
 }
 
+// Fn. that converts YCbCr to RGB color space back
+void convert_ycbcr_to_rgb(unsigned char *Y, unsigned char *Cb, unsigned char *Cr, Image *img){
+    if(img->channels < 3){
+        printf("Error: Image does not have correct color channels for YCbCr to RGB conversion.\n");
+        return;
+    }
 
+    int width = img->width;
+    int height = img->height;
+    int total_pixels = width * height;
+
+    // Allocating memory for RGB image
+    img->data = (unsigned char *)malloc(total_pixels * img->channels);
+    if (img->data == NULL) {
+        printf("Error: Failed to allocate memory for RGB image.\n");
+        
+        return;
+    }
+
+    // Converting YCbCr to RGB
+    for (int i = 0; i < total_pixels; i++) {
+        // Current Y, Cb, Cr values
+        unsigned char y = img->data[i];
+        unsigned char cb = img->data[i];
+        unsigned char cr = img->data[i];
+
+        // Based on the ITU-R BT.601 (Rec. 601) standard:
+        // ref: https://en.wikipedia.org/wiki/Y′UV
+        // ref: https://stackoverflow.com/questions/58676546/i-m-confused-with-how-to-convert-rgb-to-ycrcb
+        int r = (int)(y + 1.402 * (cr - 128));
+        int g = (int)(y - 0.344136 * (cb - 128) - 0.714136 * (cr - 128));
+        int b = (int)(y + 1.772 * (cb - 128));
+
+        // Limit values to be in the range of [0, 255] to fit into 8-bit unsigned char
+        r = (r < 0) ? 0 : (r > 255) ? 255 : r;
+        g = (g < 0) ? 0 : (g > 255) ? 255 : g;
+        b = (b < 0) ? 0 : (b > 255) ? 255 : b;
+
+        int index = i * img->channels;
+        img->data[index] = (unsigned char)r;
+        img->data[index + 1] = (unsigned char)g;
+        img->data[index + 2] = (unsigned char)b;
+    }
+    printf("Image converted from RGB to YCbCr.\n");
+}
 
 void print_array(int arr[], int size) {
     for (int i = 0; i < size; i++) {
