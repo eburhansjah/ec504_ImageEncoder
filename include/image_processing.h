@@ -17,8 +17,8 @@ void zigzag_scanning(int quantized_block[8][8], int zigzag_array[64]);
 int* run_length_encode(int array[64], int encode_array[128]);
 void dequantization(int quantized_block[8][8], double dct_block[8][8]);
 void IDCT(const float dct_block[64], unsigned char block[64]);
+void fast_IDCT(const double dct_block[8][8], unsigned char block[8][8]);
 
 void print_array(int array[], int size);
-int* run_length_encode(int array[64], int encode_array[128]);
 
 #endif // IMAGE_PROCESSING_H
