@@ -534,6 +534,15 @@ void upsampling(unsigned char *Cb_sub, unsigned char *Cr_sub, int width, int hei
     }
 }
 
+// Fn. that reverses extract_8x8_block function
+void insert_8x8_block(unsigned char *channel, int image_width, int start_x, int start_y, unsigned char block[8][8]){
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            channel[(start_y + i) * image_width + (start_x + j)] = block[i][j];
+        }
+    }
+}
+
 // Fn. that converts YCbCr to RGB color space back
 void convert_ycbcr_to_rgb(unsigned char *Y, unsigned char *Cb, unsigned char *Cr, Image *img){
     if(img->channels < 3){
