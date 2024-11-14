@@ -72,20 +72,54 @@ void mpeg1_sequence_header(uint16_t width, uint16_t height, uint8_t aspect_ratio
     *(out++) = (yby_size & 0x1f) << 3;
 }
 
+void mpeg1_sequence_end(uint8_t out[4]) {
+    memcpy(out, "\x00\x00\x01\xb7", 4);
+}
+
 // A: 1 F: 4 YBY : 3
-void mpeg1_gop(uint16_t width, uint16_t height, uint8_t aspect_ratio, uint8_t frame_rate, uint8_t yby_size, uint8_t* out) {
+void mpeg1_gop(uint8_t drop_frame, uint8_t hour, uint8_t minute, 
+    uint8_t second, uint8_t num_pic, uint8_t closed, uint8_t broken, uint8_t* out) {
     *(out++) = 0x00;
     *(out++) = 0x00;
     *(out++) = 0x01;
     *(out++) = 0xb8; // sequence header
-    *(out++) = (width & 0xff0) >> 4;
-    *(out++) = (width & 0xf) << 4 | (height & 0xf00) >> 8;
-    *(out++) = (height & 0x0ff);
-    *(out++) = (aspect_ratio & 0xf) << 4 | frame_rate & 0xf;
-    *(out++) = 0xFF;
-    *(out++) = 0xFF; // flexible bitrate
-    *(out++) = 0xE0 ;//| (yby_size & 0x);
-    *(out++) = (yby_size & 0x1f) << 3;
+    *(out++) = (drop_frame << 7) | (hour & 0x1f) << 2 | (minute & 0x30) >> 4;
+    *(out++) = (minute & 0xf) << 4 | 0x8 | (second & 0x38) >> 3;
+    *(out++) = (second & 0x7) << 5 | (num_pic & 0xfc) >> 1;
+    *(out++) = (num_pic & 1) << 7 | (closed & 1) << 6 | (broken & 1) << 5;
+}
+
+/*
+I - 001
+P - 010
+B - 011
+*/
+void mpeg1_picture_header(uint16_t temporal_ref, uint8_t picture_type,
+    uint16_t vbv_delay, uint8_t* bidir_vector, uint8_t* out) {
+    *(out++) = 0x00;
+    *(out++) = 0x00;
+    *(out++) = 0x01;
+    *(out++) = 0x00; // sequence header
+    *(out++) = (temporal_ref & 0x3fc) >> 2;
+    *(out++) = (temporal_ref & 0x3) << 6 | (picture_type & 0x7) << 3 | (vbv_delay & 0xe000) >> 13;
+    *(out++) = (vbv_delay & 0x1fe0) >> 5;
+    *(out++) = (vbv_delay & 0x1f) << 3;
+    if (picture_type == 2 || picture_type == 3) {
+        *(out - 1) |= (bidir_vector[0] & 1) << 2 | (bidir_vector[1] & 6) >> 1;
+        *(out ++) = (bidir_vector[1] & 1) << 7;
+    }
+    if (picture_type == 3) {
+        *(out - 1) |= (bidir_vector[2] & 1) << 6 | (bidir_vector[3] & 7) << 3;
+    }
+}
+
+void mpeg1_slice(uint8_t quant_scale, uint8_t* out) {
+    *(out++) = 0x00;
+    *(out++) = 0x00;
+    *(out++) = 0x01;
+    *(out++) = 0x01; // slice header
+    *(out) = (quant_scale & 0x1f) << 3; 
+    // special process, slice contain packed macroblocks
 }
 
 void display_u8arr(uint8_t* buf, int32_t size) {
