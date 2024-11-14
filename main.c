@@ -92,15 +92,16 @@ int main() {
     // }
     // closedir(dir);
 
-    // // Checking if file has images and that their dimensions match
-    // if (!check_dimensions(images, img_count)) {
-    //     printf("Image dimensions do not match.\n");
-    //     for (int i = 0; i < img_count; i++) {
-    //         stbi_image_free(images[i]->data);
-    //         free(images[i]);
-    //     }
-    //     return -1;
-    // }
+    // Checking if file has images and that their dimensions match
+    if (!check_dimensions(images, img_count)) {
+        printf("Image dimensions do not match.\n");
+        for (int i = 0; i < img_count; i++) {
+            stbi_image_free(images[i]->data);
+            free(images[i]);
+        }
+        free(images);
+        return -1;
+    }
 
     // for (int i = 0; i < img_count; i++) {
     //     // Converting images from RGB to YCbCr and saving bitstreams
@@ -122,8 +123,6 @@ int main() {
     //             double Y_dct_blocks[4][8][8];
     //             int Y_quantized[4][8][8];
     //             int Y_zigzag[4][64];
-
-                int encoded_array[128];
 
                 for (int block = 0; block < 4; block++) {
                     int x_start_pos = x + (block % 2) * 8;
@@ -158,7 +157,8 @@ int main() {
                     //     printf("%4d ", Y_zigzag[0][i]);
                     // }
                     // printf("\n");
-                    int *Y_RLE = run_length_encode(Y_zigzag[i], encoded_array);
+                    int Y_encoded_array[128];
+                    int *Y_RLE = run_length_encode(Y_zigzag[block], Y_encoded_array);
                 }
 
     //             // Diving Cb and Cr each into 1 8x8 block
@@ -203,8 +203,9 @@ int main() {
                 }
                 printf("\n");
 
-                int *Cb_RLE = run_length_encode(Cb_zigzag, encoded_array);
-                int *Cr_RLE = run_length_encode(Cr_zigzag, encoded_array);
+                int Cb_encoded_array[128], Cr_encoded_array[128];
+                int *Cb_RLE = run_length_encode(Cb_zigzag, Cb_encoded_array);
+                int *Cr_RLE = run_length_encode(Cr_zigzag, Cr_encoded_array);
             }
         }
         
