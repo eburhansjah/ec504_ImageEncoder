@@ -34,7 +34,7 @@ const int ZIGZAG_ORDER[8][8] = {
      { 35, 36, 48, 49, 57, 58, 62, 63 }
 };
 
-// Constants for fast_DCT (implementation with Fast Fourier Transform)
+// Constants for fast_DCT and fast_IDCT (implementation with Fast Fourier Transform)
 static const int c1 = 1004; // cos(pi/16) << 10
 static const int s1 = 200;  // sin(pi/16)
 static const int c3 = 851;  // cos(3pi/16) << 10
@@ -98,6 +98,7 @@ void convert_rgb_to_ycbcr(Image *img, unsigned char **Y, unsigned char **Cb, uns
         // YCbCr assumes that R, G, B are 8 bits unsigned ints in range [0, 255]
         // Range of Cb Cr has 128 added as an offset ensures that result is always positive (full range)
         // ref: https://stackoverflow.com/questions/58676546/i-m-confused-with-how-to-convert-rgb-to-ycrcb
+        //      https://en.wikipedia.org/wiki/Y′UV
         (*Y)[i]  = (unsigned char)(0.299 * r + 0.587 * g + 0.114 * b);
         (*Cb)[i] = (unsigned char)(128 - 0.168736 * r - 0.331264 * g + 0.5 * b);
         (*Cr)[i] = (unsigned char)(128 + 0.5 * r - 0.418688 * g - 0.081312 * b);
@@ -375,6 +376,219 @@ void IDCT(const float dct_block[64], unsigned char block[64]){
 
 }
 
+// Fn. that does 2D Inverse DCT with Fast Fourier Transform
+// significantly reduces run time to n log n from n^4
+// Process is similar to fast_DCT but in reverse, converting freq. domain (dct_block)
+// back into spatial-domain (pixel values)
+// ref: https://unix4lyfe.org/dct/
+//      https://kibichomurage.medium.com/aan-dct-forward-and-inverse-7380e2fcbc32
+//      It is based on the AAN algorithm:
+//          Y. Arai, T. Agui, and M. Nakajima, “A fast DCT-SQ scheme for
+//      images,” Transactions of the IEICE, vol. 71, no. 11, pp. 1095–
+//      1097, 1988.
+void fast_IDCT(const double dct_block[8][8], unsigned char block[8][8]){
+    const int N = 8;
+    int cols[8][8];
+    int x0, x1, x2, x3, x4, x5, x6, x7, x8;
+
+    // Transforming columns
+    for (int i = 0; i < N; i++){
+        x0 = dct_block[0][i];
+        x1 = dct_block[1][i];
+        x2 = dct_block[2][i];
+        x3 = dct_block[3][i];
+        x4 = dct_block[4][i];
+        x5 = dct_block[5][i];
+        x6 = dct_block[6][i];
+        x7 = dct_block[7][i];
+
+        // Stage 1
+        x8 = x7 + x0;
+        x0 -= x7;
+        x7 = x1 + x6;
+        x1 -= x6;
+        x6 = x2 + x5;
+        x2 -= x5;
+        x5 = x3 + x4;
+        x3 -= x4;
+
+        // Stage 2
+        x4 = x8 + x5;
+        x8 -= x5;
+        x5 = x7 + x6;
+        x7 -= x6;
+        x6 = c1 * (x1 + x2);
+        x2 = (-s1 - c1) * x2 + x6;
+        x1 = (s1 - c1) * x1 + x6;
+        x6 = c3 * (x0 + x3);
+        x3 = (-s3 - c3) * x3 + x6;
+        x0 = (s3 - c3) * x0 + x6;
+
+        // Stage 3
+        x6 = x4 + x5;
+        x4 -= x5;
+        x5 = r2c6 * (x7 + x8);
+        x7 = (-r2s6 - r2c6) * x7 + x5;
+        x8 = (r2s6 - r2c6) * x8 + x5;
+        x5 = x0 + x2;
+        x0 -= x2;
+        x2 = x3 + x1;
+        x3 -= x1;
+
+        // Stage 4 and output
+        cols[0][i] = x6;
+        cols[4][i] = x4;
+        cols[2][i] = x8 >> 10;
+        cols[6][i] = x7 >> 10;
+        cols[7][i] = (x2 - x5) >> 10;
+        cols[1][i] = (x2 + x5) >> 10;
+        cols[3][i] = (x3 * r2) >> 17;
+        cols[5][i] = (x0 * r2) >> 17;
+    }
+
+    // Transforming rows
+    for (int i = 0; i < N; i++) {
+        x0 = cols[i][0];
+        x1 = cols[i][1];
+        x2 = cols[i][2];
+        x3 = cols[i][3];
+        x4 = cols[i][4];
+        x5 = cols[i][5];
+        x6 = cols[i][6];
+        x7 = cols[i][7];
+
+        // Repeat the stages in reverse
+        x8 = x7 + x0;
+        x0 -= x7;
+        x7 = x1 + x6;
+        x1 -= x6;
+        x6 = x2 + x5;
+        x2 -= x5;
+        x5 = x3 + x4;
+        x3 -= x4;
+
+        x4 = x8 + x5;
+        x8 -= x5;
+        x5 = x7 + x6;
+        x7 -= x6;
+        x6 = c1 * (x1 + x2);
+        x2 = (-s1 - c1) * x2 + x6;
+        x1 = (s1 - c1) * x1 + x6;
+        x6 = c3 * (x0 + x3);
+        x3 = (-s3 - c3) * x3 + x6;
+        x0 = (s3 - c3) * x0 + x6;
+
+        x6 = x4 + x5;
+        x4 -= x5;
+        x5 = r2c6 * (x7 + x8);
+        x7 = (-r2s6 - r2c6) * x7 + x5;
+        x8 = (r2s6 - r2c6) * x8 + x5;
+        x5 = x0 + x2;
+        x0 -= x2;
+        x2 = x3 + x1;
+        x3 -= x1;
+
+        block[i][0] = (unsigned char)(x6 < 0 ? 0 : (x6 > 255 ? 255 : x6));
+        block[i][4] = (unsigned char)(x4 < 0 ? 0 : (x4 > 255 ? 255 : x4));
+        block[i][2] = (unsigned char)(x8 >> 10);
+        block[i][6] = (unsigned char)(x7 >> 10);
+        block[i][7] = (unsigned char)((x2 - x5) >> 10);
+        block[i][1] = (unsigned char)((x2 + x5) >> 10);
+        block[i][3] = (unsigned char)((x3 * r2) >> 17);
+        block[i][5] = (unsigned char)((x0 * r2) >> 17);
+    }
+}
+
+// Fn. that does the reversing of subsampling_420()
+// Goal is to upsample each Cb and Cr value back to 2x2 block
+void upsampling(unsigned char *Cb_sub, unsigned char *Cr_sub, int width, int height, unsigned char **Cb, unsigned char **Cr){
+    int sub_width = width / 2;
+    int sub_height = height / 2;
+
+    *Cb = (unsigned char *)malloc(width * height);
+    *Cr = (unsigned char *)malloc(width * height);
+
+    // We are iterating over each subsampled pixel and expanding it to a 2x2 block
+    for (int y = 0; y < sub_height; y ++) {
+        for (int x = 0; x < sub_width; x++) {
+            int idx_sub = y * sub_width + x;
+
+            // Instead of replacing 2x2 block for both Cb and Cr with their average values,
+            // We are filling in the 2x2 block, copying subsampled values
+            // into their respective locations to achieve a full resolution
+            int idx_up_1 = (2 * y) * width + (2 * x);
+            int idx_up_2 = (2 * y) * width + (2 * x + 1);
+            int idx_up_3 = (2 * y + 1) * width + (2 * x);
+            int idx_up_4 = (2 * y + 1) * width + (2 * x + 1);
+
+            (*Cb)[idx_up_1] = Cb_sub[idx_sub];
+            (*Cb)[idx_up_2] = Cb_sub[idx_sub];
+            (*Cb)[idx_up_3] = Cb_sub[idx_sub];
+            (*Cb)[idx_up_4] = Cb_sub[idx_sub];
+
+            (*Cr)[idx_up_1] = Cr_sub[idx_sub];
+            (*Cr)[idx_up_2] = Cr_sub[idx_sub];
+            (*Cr)[idx_up_3] = Cr_sub[idx_sub];
+            (*Cr)[idx_up_4] = Cr_sub[idx_sub];
+        }
+    }
+}
+
+// Fn. that reverses extract_8x8_block function
+void insert_8x8_block(unsigned char *channel, int image_width, int start_x, int start_y, unsigned char block[8][8]){
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            channel[(start_y + i) * image_width + (start_x + j)] = block[i][j];
+        }
+    }
+}
+
+// Fn. that converts YCbCr to RGB color space back
+void convert_ycbcr_to_rgb(unsigned char *Y, unsigned char *Cb, unsigned char *Cr, Image *img){
+    if(img->channels < 3){
+        printf("Error: Image does not have correct color channels for YCbCr to RGB conversion.\n");
+        return;
+    }
+
+    int width = img->width;
+    int height = img->height;
+    int total_pixels = width * height;
+
+    // Allocating memory for RGB image
+    img->data = (unsigned char *)malloc(total_pixels * img->channels);
+    if (img->data == NULL) {
+        printf("Error: Failed to allocate memory for RGB image.\n");
+        
+        return;
+    }
+
+    // Converting YCbCr to RGB
+    for (int i = 0; i < total_pixels; i++) {
+        // Current Y, Cb, Cr values
+        unsigned char y = img->data[i];
+        unsigned char cb = img->data[i];
+        unsigned char cr = img->data[i];
+
+        // Based on the ITU-R BT.601 (Rec. 601) standard:
+        // ref: https://en.wikipedia.org/wiki/Y′UV
+        // ref: https://stackoverflow.com/questions/58676546/i-m-confused-with-how-to-convert-rgb-to-ycrcb
+        int r = (int)(y + 1.402 * (cr - 128));
+        int g = (int)(y - 0.344136 * (cb - 128) - 0.714136 * (cr - 128));
+        int b = (int)(y + 1.772 * (cb - 128));
+
+        // Limit values to be in the range of [0, 255] to fit into 8-bit unsigned char
+        r = (r < 0) ? 0 : (r > 255) ? 255 : r;
+        g = (g < 0) ? 0 : (g > 255) ? 255 : g;
+        b = (b < 0) ? 0 : (b > 255) ? 255 : b;
+
+        int index = i * img->channels;
+        img->data[index] = (unsigned char)r;
+        img->data[index + 1] = (unsigned char)g;
+        img->data[index + 2] = (unsigned char)b;
+    }
+    printf("Image converted from RGB to YCbCr.\n");
+}
+
 void print_array(int arr[], int size) {
     for (int i = 0; i < size; i++) {
         printf("%d ", arr[i]);
@@ -420,7 +634,7 @@ int* run_length_encode(int zigzag_block[64], int encoded_array[128]) {
     for (int i = 0; i < index; i++) {
         return_array[i] = encoded_array[i];
     }
-    //print_array(return_array, index);
+    print_array(return_array, index);
     return return_array;
 }
 

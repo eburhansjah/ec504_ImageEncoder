@@ -92,6 +92,7 @@ int main() {
             stbi_image_free(images[i]->data);
             free(images[i]);
         }
+        free(images);
         return -1;
     }
 
@@ -122,7 +123,6 @@ int main() {
 
                     extract_8x8_block(Y, images[i]->width, x_start_pos, y_start_pos, Y_blocks[block]);
 
-                    // DCT(Y_blocks[block], Y_dct_blocks[block]);
                     fast_DCT(Y_blocks[block], Y_dct_blocks[block]);
                     // // Printing transformed DCT coeffs. 
                     // printf("Fast DCT on Y Block:\n");
@@ -150,6 +150,8 @@ int main() {
                     //     printf("%4d ", Y_zigzag[0][i]);
                     // }
                     // printf("\n");
+                    int Y_encoded_array[128];
+                    int *Y_RLE = run_length_encode(Y_zigzag[block], Y_encoded_array);
                 }
 
                 // Diving Cb and Cr each into 1 8x8 block
@@ -159,8 +161,6 @@ int main() {
                 extract_8x8_block(Cb, images[i]->width / 2, x / 2, y / 2, Cb_block);
                 extract_8x8_block(Cr, images[i]->width / 2, x / 2, y / 2, Cr_block);
             
-                // DCT(Cb_block, Cb_dct);
-                // DCT(Cr_block, Cr_dct);
                 fast_DCT(Cb_block, Cb_dct);
                 fast_DCT(Cr_block, Cr_dct);
 
@@ -195,13 +195,10 @@ int main() {
                     printf("%4d ", Cb_zigzag[i]);
                 }
                 printf("\n");
-                
-                int encoded_array[128];
 
-                printf("RLE array for Cb component:\n");
-                int* RLE_array_Cb = run_length_encode(Cb_zigzag, encoded_array);
-
-                free(RLE_array_Cb);
+                int Cb_encoded_array[128], Cr_encoded_array[128];
+                int *Cb_RLE = run_length_encode(Cb_zigzag, Cb_encoded_array);
+                int *Cr_RLE = run_length_encode(Cr_zigzag, Cr_encoded_array);
             }
         }
         
