@@ -26,3 +26,5 @@ long long int bitvector_pos(BITVECTOR* bv, long long int off);
 void bitvector_concat(BITVECTOR* dest, BITVECTOR* src);
 
 int bitvector_toarray(BITVECTOR* bv, char* output);
+
+BITVECTOR* bitvector_clone(BITVECTOR* bv);

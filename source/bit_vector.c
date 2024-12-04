@@ -66,11 +66,11 @@ void bitvector_put_byte_off(BITVECTOR* bv, char val, char bits, char offset) {
 
 
 void bitvecotr_put_byte(BITVECTOR* bv, char val, char bits) {
-    bitvecotr_put_byte_off(bv, val, bits, 0);
+    bitvector_put_byte_off(bv, val, bits, 0);
 }
 
 void bitvecotr_put_byte_ent(BITVECTOR* bv, char val) {
-    bitvecotr_put_byte_off(bv, val, 8, 0);
+    bitvector_put_byte_off(bv, val, 8, 0);
 }
 
 long long int bitvector_pos(BITVECTOR* bv, long long int off) {
@@ -113,4 +113,13 @@ void bitvector_expand_size(BITVECTOR* bv, long long int speculative) {
         bv->value = realloc(bv->value, (bv->bits >> 2) + 1);
         bv->bits = bv->bits << 1;
     }
+}
+
+
+BITVECTOR* bitvector_clone(BITVECTOR* bv) {
+    BITVECTOR* nvec = (BITVECTOR *) malloc(sizeof(BITVECTOR));
+    bitvector_init(nvec, bv->bits);
+    nvec->cap = nvec->cursor = bv->cap; // Only the cursor is not cloned
+    memcpy(nvec->value, bv->value, (bv->bits / 8) + (bv->bits % 8 ? 1 : 0));
+    return nvec;
 }

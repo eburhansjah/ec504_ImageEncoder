@@ -8,6 +8,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "image_processing.h"
+#include "bit_vector.h"
 
 
 int main() {
