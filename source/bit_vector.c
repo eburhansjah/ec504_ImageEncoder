@@ -85,6 +85,15 @@ void bitvector_concat(BITVECTOR* dest, BITVECTOR* src) {
     if (dest->bits - dest->cursor < src->cap) {
         bitvector_expand_size(dest, src->bits);
     }
+
+    if (dest->cursor % 8 == 0) {
+        // enable shortcut mode if the dest vector is padded to 8, this copy should be much faster
+        memcpy(dest->value + (dest->cursor / 8), src->value, (src->cap / 8) + (src->cap % 8 ? 1 : 0));
+        dest->cursor += src->cap;
+        if (dest->cap < dest->cursor) dest->cap = dest->cursor;
+        return;
+    }
+
     for (;i < src->cap >> 3; i ++) {
         bitvecotr_put_byte_ent(dest, src->value[i]);
     }
@@ -121,5 +130,12 @@ BITVECTOR* bitvector_clone(BITVECTOR* bv) {
     bitvector_init(nvec, bv->bits);
     nvec->cap = nvec->cursor = bv->cap; // Only the cursor is not cloned
     memcpy(nvec->value, bv->value, (bv->bits / 8) + (bv->bits % 8 ? 1 : 0));
+    return nvec;
+}
+
+BITVECTOR* bitvector_new(const char* binstring, long long int size) {
+    BITVECTOR* nvec = (BITVECTOR *) malloc(sizeof(BITVECTOR));
+    bitvector_init(nvec, size);
+    bitvector_put_binstring(nvec, binstring);
     return nvec;
 }

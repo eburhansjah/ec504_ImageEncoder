@@ -1,5 +1,7 @@
 
 #include <stdlib.h>
+#ifndef GUARD_BITVECTOR
+#define GUARD_BITVECTOR 1
 #define BITVECTOR struct bitvector
 
 BITVECTOR {
@@ -10,6 +12,8 @@ BITVECTOR {
 };
 
 void bitvector_init(BITVECTOR* bv, long long int size);
+
+BITVECTOR* bitvector_new(const char* binstring, long long int size);
 
 void bitvector_put_bit(BITVECTOR* bv, char bit);
 
@@ -28,3 +32,5 @@ void bitvector_concat(BITVECTOR* dest, BITVECTOR* src);
 int bitvector_toarray(BITVECTOR* bv, char* output);
 
 BITVECTOR* bitvector_clone(BITVECTOR* bv);
+
+#endif
