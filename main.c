@@ -10,6 +10,7 @@
 #include "image_processing.h"
 #include "bit_vector.h"
 #include "mpeg1.h"
+#include "bit_vector.h"
 
 
 int main() {
