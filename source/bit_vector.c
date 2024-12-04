@@ -85,7 +85,7 @@ void bitvector_concat(BITVECTOR* dest, BITVECTOR* src) {
     if (dest->bits - dest->cursor < src->cap) {
         bitvector_expand_size(dest, src->bits);
     }
-    for (i < src->cap >> 3; i ++) {
+    for (;i < src->cap >> 3; i ++) {
         bitvecotr_put_byte_ent(dest, src->value[i]);
     }
     if (src->cap & 0x7)
