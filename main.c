@@ -19,6 +19,8 @@ int main() {
     display_u8arr(out, 12);
     mpeg1_sys_header(2202035, 0xe6, out);
     display_u8arr(out, 15);
+    encode_macblk_address_value(10);
+    encode_macroblock_header(33, NULL);
     // const char *images_folder = "./images";
     // const char *bitstream_folder = "./bitstreams";
 
@@ -94,15 +96,15 @@ int main() {
     // closedir(dir);
 
     // Checking if file has images and that their dimensions match
-    if (!check_dimensions(images, img_count)) {
-        printf("Image dimensions do not match.\n");
-        for (int i = 0; i < img_count; i++) {
-            stbi_image_free(images[i]->data);
-            free(images[i]);
-        }
-        free(images);
-        return -1;
-    }
+    // if (!check_dimensions(images, img_count)) {
+    //     printf("Image dimensions do not match.\n");
+    //     for (int i = 0; i < img_count; i++) {
+    //         stbi_image_free(images[i]->data);
+    //         free(images[i]);
+    //     }
+    //     free(images);
+    //     return -1;
+    // }
 
     // for (int i = 0; i < img_count; i++) {
     //     // Converting images from RGB to YCbCr and saving bitstreams
@@ -125,13 +127,13 @@ int main() {
     //             int Y_quantized[4][8][8];
     //             int Y_zigzag[4][64];
 
-                for (int block = 0; block < 4; block++) {
-                    int x_start_pos = x + (block % 2) * 8;
-                    int y_start_pos = y + (block / 2) * 8;
+                // for (int block = 0; block < 4; block++) {
+                //     int x_start_pos = x + (block % 2) * 8;
+                //     int y_start_pos = y + (block / 2) * 8;
 
     //                 extract_8x8_block(Y, images[i]->width, x_start_pos, y_start_pos, Y_blocks[block]);
 
-                    fast_DCT(Y_blocks[block], Y_dct_blocks[block]);
+                    // fast_DCT(Y_blocks[block], Y_dct_blocks[block]);
                     // // Printing transformed DCT coeffs. 
                     // printf("Fast DCT on Y Block:\n");
                     // for (int i = 0; i < 8; i++) {
@@ -151,16 +153,16 @@ int main() {
     //                 //     printf("\n");
     //                 // }
 
-                    zigzag_scanning(Y_quantized[block], Y_zigzag[block]);
+                    // zigzag_scanning(Y_quantized[block], Y_zigzag[block]);
                     // // Printing zigzag scanning result on Y block
                     // printf("Zigzag Scanned Coeffs. on Y Block:\n");
                     // for (int i = 0; i < 64; i++) {
                     //     printf("%4d ", Y_zigzag[0][i]);
                     // }
                     // printf("\n");
-                    int Y_encoded_array[128];
-                    int *Y_RLE = run_length_encode(Y_zigzag[block], Y_encoded_array);
-                }
+                //     int Y_encoded_array[128];
+                //     int *Y_RLE = run_length_encode(Y_zigzag[block], Y_encoded_array);
+                // }
 
     //             // Diving Cb and Cr each into 1 8x8 block
     //             unsigned char Cb_block[8][8], Cr_block[8][8];
@@ -169,8 +171,8 @@ int main() {
     //             extract_8x8_block(Cb, images[i]->width / 2, x / 2, y / 2, Cb_block);
     //             extract_8x8_block(Cr, images[i]->width / 2, x / 2, y / 2, Cr_block);
             
-                fast_DCT(Cb_block, Cb_dct);
-                fast_DCT(Cr_block, Cr_dct);
+                // fast_DCT(Cb_block, Cb_dct);
+                // fast_DCT(Cr_block, Cr_dct);
 
     //             // printf("Fast DCT on Cb Block:\n");
     //             // for (int i = 0; i < 8; i++) {
@@ -198,17 +200,17 @@ int main() {
     //             zigzag_scanning(Cb_quantized, Cb_zigzag);
     //             zigzag_scanning(Cr_quantized, Cr_zigzag);
 
-                printf("Zigzag Scanned Coeffs. on Cb Block:\n");
-                for (int i = 0; i < 64; i++) {
-                    printf("%4d ", Cb_zigzag[i]);
-                }
-                printf("\n");
+        //         printf("Zigzag Scanned Coeffs. on Cb Block:\n");
+        //         for (int i = 0; i < 64; i++) {
+        //             printf("%4d ", Cb_zigzag[i]);
+        //         }
+        //         printf("\n");
 
-                int Cb_encoded_array[128], Cr_encoded_array[128];
-                int *Cb_RLE = run_length_encode(Cb_zigzag, Cb_encoded_array);
-                int *Cr_RLE = run_length_encode(Cr_zigzag, Cr_encoded_array);
-            }
-        }
+        //         int Cb_encoded_array[128], Cr_encoded_array[128];
+        //         int *Cb_RLE = run_length_encode(Cb_zigzag, Cb_encoded_array);
+        //         int *Cr_RLE = run_length_encode(Cr_zigzag, Cr_encoded_array);
+        //     }
+        // }
         
 
     //     // Creating unique bitstream file names
