@@ -19,11 +19,11 @@ void bitvector_put_bit(BITVECTOR* bv, char bit);
 
 void bitvector_put_binstring(BITVECTOR* bv, const char* bitstring);
 
-void bitvecotr_put_byte_off(BITVECTOR* bv, char val, char bits, char offset);
+void bitvector_put_byte_off(BITVECTOR* bv, unsigned char val, char bits, char offset);
 
-void bitvecotr_put_byte(BITVECTOR* bv, char val, char bits);
+void bitvector_put_byte(BITVECTOR* bv, char val, char bits);
 
-void bitvecotr_put_byte_ent(BITVECTOR* bv, char val);
+void bitvector_put_byte_ent(BITVECTOR* bv, char val);
 
 long long int bitvector_pos(BITVECTOR* bv, long long int off);
 
