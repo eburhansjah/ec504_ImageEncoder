@@ -69,8 +69,11 @@ struct vlc_macroblock encoding_table[MAX_VALUE + 3] = {
 
 // Function to get the encoded bits for a given value
 BITVECTOR *encode_macblk_address_value(int value) {
+    BITVECTOR* b;
     if (value >= 1 && value <= MAX_VALUE + 2) {
-        return bitvector_new(encoding_table[value].binstring, encoding_table[value].bit_len);
+        b = bitvector_new(encoding_table[value].binstring, encoding_table[value].bit_len);
+        bitvector_print(b);
+        return b;
     }
     return NULL;
 }
@@ -96,13 +99,13 @@ struct vlc_macroblock mv_encoding_table[17] = {
 };
 
 // Function to get the encoded bits for a given value
-BITVECTOR *encode_macblk_address_value(int value) {
+BITVECTOR *encode_macblk_encoding_value(int value) {
     BITVECTOR* res;
     int nvalue = 0;
     if (value >= -16 && value <= 16) {
         if (value < 0) nvalue = -value;
         res = bitvector_new(mv_encoding_table[nvalue].binstring, mv_encoding_table[nvalue].bit_len);
-        if (value < 0) { bitvector_pos(res, -1); bitvecotr_put_bit(res, 1); };
+        if (value < 0) { bitvector_pos(res, -1); bitvector_put_bit(res, 1); };
         return res;
     }
     return NULL;
@@ -119,7 +122,7 @@ struct vlc_macroblock dc_sz_luma_table[9] = {
     VLC_BLK("1111110"), // 8
 };
 
-struct vlc_macroblock dc_sz_luma_table[9] = {
+struct vlc_macroblock dc_sz_chroma_table[9] = {
     VLC_BLK("00"), // 0
     VLC_BLK("101"), // 1
     VLC_BLK("110"),
@@ -139,9 +142,12 @@ struct vlc_block_rle
     struct vlc_block code;
 };
 
+#define VLC_BLOCK_LOOKUP 18
+
+// we decided to use a two-level lookup so the rle table don't need to be a 2-D array
 // offset into the vlc lookup table
 unsigned int blk_rle_lookup[] = {
-    0, 39, 57, 62, 66, 69, 72, 75, 77, 79, 81, 83, 85, 87, 89, 91, 93, 95
+    0, 39, 57, 62, 66, 69, 72, 75, 77, 79, 81, 83, 85, 87, 89, 91, 93, 95, 96
 };
 
 struct vlc_block_rle blk_rle_table[] = {
@@ -256,3 +262,49 @@ struct vlc_block_rle blk_rle_table[] = {
 {30	,1	,VLC_BLK_E("0000000000011100")},
 {31	,1	,VLC_BLK_E("0000000000011011")}
 };
+
+#define BLK_COEFF_ESCAPE "000001"
+#define BLK_COEFF_END "10"
+#define BLK_COEFF_1_F "1"
+#define BLK_COEFF_1_N "11"
+
+struct vlc_block blk_coeff_1_f = {BLK_COEFF_1_F, 2};
+struct vlc_block blk_coeff_1_n = {BLK_COEFF_1_F, 3};
+struct vlc_block blk_coeff_end = {BLK_COEFF_END, 2};
+
+
+BITVECTOR *encode_blk_coeff(int run, int level, int first) {
+    BITVECTOR* res;
+    int nvalue = 0;
+    struct vlc_block* rle = NULL;
+    int sign = (level >= 0) ? 0 : 1;
+    if (level < 0) level = -level;
+    // Since the lowest level to start is 1, we decrement it
+    level --;
+
+    // Process the "special" case when run is 0 and value = 1
+    if (run == 0 && level == 0) {
+        if (first) {
+            rle = &blk_coeff_1_f;
+        } else {
+            rle = &blk_coeff_1_n;
+        }
+    } else if (run <= 31) {
+        if (run < VLC_BLOCK_LOOKUP && level < blk_rle_lookup[run + 1] - blk_rle_lookup[run]) {
+
+        }
+    }
+
+    if (rle != NULL) {
+        // found a usable vlc, no need to consider escape
+
+    } else {
+        // we know that value escape should happen, have to decide if the value is legitimate
+        if (level < 256 && run < 64 && run >= 0) {
+            // The value escape range
+            
+        }
+    }
+    // The value can't be encoded
+    return NULL;
+}

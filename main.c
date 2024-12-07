@@ -19,8 +19,12 @@ int main() {
     display_u8arr(out, 12);
     mpeg1_sys_header(2202035, 0xe6, out);
     display_u8arr(out, 15);
-    encode_macblk_address_value(10);
-    encode_macroblock_header(33, NULL);
+    BITVECTOR* b = bitvector_new("", 8);
+    
+    encode_macroblock_header(33, b);
+    bitvector_concat(b, encode_macblk_address_value(10));
+    bitvector_concat(b, encode_macblk_address_value(33));
+    bitvector_print(b);
     // const char *images_folder = "./images";
     // const char *bitstream_folder = "./bitstreams";
 

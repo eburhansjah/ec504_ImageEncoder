@@ -1,5 +1,7 @@
 #include "bit_vector.h"
 #include <stdlib.h>
+#include <stdio.h>
+
 
 void bitvector_init(BITVECTOR* bv, long long int size) {
     bv->cap = bv->cursor = 0;
@@ -36,33 +38,38 @@ void bitvector_put_binstring(BITVECTOR* bv, const char* bitstring) {
     if (bv->cap < bv->cursor) bv->cap = bv->cursor;
 }
 
-void bitvector_put_byte_off(BITVECTOR* bv, char val, char bits, char offset) {
-    long long int boff = bv->cursor >> 3;  // Byte offset in the BITVECTOR
-    int off = 7 - (bv->cursor & 0x7) + 1;  // Bit offset within the byte
-    val &= (1u << (8 - offset)) - 1;       // Mask to use only the specified number of bits
+void bitvector_put_byte_off(BITVECTOR *bv, char val, char bits, char offset) {
+    long long int boff = bv->cursor >> 3;    // Byte offset in the BITVECTOR
+    int bit_offset = 7 - (bv->cursor & 0x7); // Bit offset within the current byte
+    val = (val >> (8 - offset - bits)) & ((1 << bits) - 1); // Extract the relevant bits from 'val'
 
-    if (bv->cursor + bits >= bv->bits) bitvector_expand_size(bv, 0);
-
-    if (off >= bits) {
-        // If remaining bits in the current byte are sufficient to hold 'bits' bits of 'val'
-        bv->value[boff] &= ~(((1 << bits) - 1) << (off - bits));
-        bv->value[boff] |= (val & ((1 << bits) - 1)) << (off - bits);
-        bv->cursor += bits; // Move the cursor forward by 'bits'
-    } else {
-        // If bits need to be split between this byte and the next one
-        bv->value[boff] &= ~((1 << off) - 1); // Clear the bits at 'off'
-        bv->value[boff] |= (val >> (bits - off)) & ((1 << off) - 1);
-        bv->cursor += off; // Move the cursor forward to the next byte
-
-        // Handle the remaining bits in the next byte
-        bits -= off;
-        boff++;
-        bv->value[boff] &= ~((1 << bits) - 1); // Clear bits in the next byte
-        bv->value[boff] |= val & ((1 << bits) - 1);
-        bv->cursor += bits; // Advance the cursor by remaining bits
+    // Ensure there is enough space to write the bits
+    if (bv->cursor + bits > bv->bits) {
+        bitvector_expand_size(bv, bv->cursor + bits - bv->bits);
     }
-    if (bv->cap < bv->cursor) bv->cap = bv->cursor;
+
+    while (bits > 0) {
+        int bits_to_write = (bit_offset + 1 < bits) ? bit_offset + 1 : bits;
+
+        // Clear and set the bits in the current byte
+        bv->value[boff] &= ~(((1 << bits_to_write) - 1) << (bit_offset + 1 - bits_to_write));
+        bv->value[boff] |= (val >> (bits - bits_to_write)) << (bit_offset + 1 - bits_to_write);
+
+        // Adjust counters and variables for the next iteration
+        bits -= bits_to_write;
+        bv->cursor += bits_to_write;
+        if (bits > 0) {
+            boff++;              // Move to the next byte
+            bit_offset = 7;      // Reset bit offset to the MSB of the new byte
+        }
+    }
+
+    // Update the capacity if the cursor has moved beyond it
+    if (bv->cap < bv->cursor) {
+        bv->cap = bv->cursor;
+    }
 }
+
 
 
 void bitvecotr_put_byte(BITVECTOR* bv, char val, char bits) {
@@ -82,6 +89,9 @@ long long int bitvector_pos(BITVECTOR* bv, long long int off) {
 // concat `src` after the cursor of `dest`, with content as bits from [0, src.cap] in src
 void bitvector_concat(BITVECTOR* dest, BITVECTOR* src) {
     int i = 0;
+
+    bitvector_print(dest);
+
     if (dest->bits - dest->cursor < src->cap) {
         bitvector_expand_size(dest, src->bits);
     }
@@ -138,4 +148,14 @@ BITVECTOR* bitvector_new(const char* binstring, long long int size) {
     bitvector_init(nvec, size);
     bitvector_put_binstring(nvec, binstring);
     return nvec;
+}
+
+void bitvector_print(BITVECTOR *bv) {
+    for (int i = 0; i < bv->cap; i++) {
+        int byte_index = i / 8;          // Find the byte index in bv->value
+        int bit_offset = 7 - (i % 8);   // Calculate the bit offset (most significant bit first)
+        int bit = (bv->value[byte_index] >> bit_offset) & 1;
+        putchar(bit + '0');             // Convert the bit to a character ('0' or '1')
+    }
+    putchar('\n');
 }
