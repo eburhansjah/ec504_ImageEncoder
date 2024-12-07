@@ -30,6 +30,8 @@ void encode_macroblock_header(unsigned address, BV* output) {
     }
     B(concat, output, encode_macblk_address_value(address)); // always something remain after padding
 
+    B(print, output);
+
     // TODO more to add, this is just example
 }
 

@@ -33,4 +33,6 @@ int bitvector_toarray(BITVECTOR* bv, char* output);
 
 BITVECTOR* bitvector_clone(BITVECTOR* bv);
 
+void bitvector_print(BITVECTOR* bv);
+
 #endif
