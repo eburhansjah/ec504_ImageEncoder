@@ -14,6 +14,7 @@
 
 
 int main() {
+    struct vlc_macroblock v;
     char out[24];
     mpeg1_file_header(2202035, out);
     display_u8arr(out, 12);
@@ -25,6 +26,9 @@ int main() {
     bitvector_concat(b, encode_macblk_address_value(10));
     bitvector_concat(b, encode_macblk_address_value(33));
     bitvector_print(b);
+
+    printf("ready p\n");
+    bitvector_print(encode_blk_coeff(3, -127, 0));
     // const char *images_folder = "./images";
     // const char *bitstream_folder = "./bitstreams";
 

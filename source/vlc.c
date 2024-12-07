@@ -142,12 +142,12 @@ struct vlc_block_rle
     struct vlc_block code;
 };
 
-#define VLC_BLOCK_LOOKUP 18
+#define VLC_BLOCK_LOOKUP 33
 
 // we decided to use a two-level lookup so the rle table don't need to be a 2-D array
 // offset into the vlc lookup table
-unsigned int blk_rle_lookup[] = {
-    0, 39, 57, 62, 66, 69, 72, 75, 77, 79, 81, 83, 85, 87, 89, 91, 93, 95, 96
+unsigned int blk_rle_lookup[VLC_BLOCK_LOOKUP] = {
+    0, 39, 57, 62, 66, 69, 72, 75, 77, 79, 81, 83, 85, 87, 89, 91, 93, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110
 };
 
 struct vlc_block_rle blk_rle_table[] = {
@@ -260,7 +260,8 @@ struct vlc_block_rle blk_rle_table[] = {
 {28	,1	,VLC_BLK_E("0000000000011110")},
 {29	,1	,VLC_BLK_E("0000000000011101")},
 {30	,1	,VLC_BLK_E("0000000000011100")},
-{31	,1	,VLC_BLK_E("0000000000011011")}
+{31	,1	,VLC_BLK_E("0000000000011011")},
+{0, 0, {NULL, 0}} // Guarding element to prevent overflow traversal
 };
 
 #define BLK_COEFF_ESCAPE "000001"
@@ -269,18 +270,37 @@ struct vlc_block_rle blk_rle_table[] = {
 #define BLK_COEFF_1_N "11"
 
 struct vlc_block blk_coeff_1_f = {BLK_COEFF_1_F, 2};
-struct vlc_block blk_coeff_1_n = {BLK_COEFF_1_F, 3};
+struct vlc_block blk_coeff_1_n = {BLK_COEFF_1_N, 3};
 struct vlc_block blk_coeff_end = {BLK_COEFF_END, 2};
+
+
+// #include<stdio.h>
+// void gen_vlc_lookup() {
+//     int i = 0;
+//     int r = 0;
+//     for (;blk_rle_table[i].code.binstring;i++) {
+//         if (blk_rle_table[i].run == r) {
+
+//         } else {
+//             printf(", %d %d %d", i, blk_rle_table[i].run, VLC_BLOCK_LOOKUP);
+//             r = blk_rle_table[i].run;
+//         }
+//     }
+// }
 
 
 BITVECTOR *encode_blk_coeff(int run, int level, int first) {
     BITVECTOR* res;
     int nvalue = 0;
+    unsigned char escl;
     struct vlc_block* rle = NULL;
     int sign = (level >= 0) ? 0 : 1;
+    if (level == 0) return NULL;
     if (level < 0) level = -level;
     // Since the lowest level to start is 1, we decrement it
     level --;
+    // Run 1 actually means 0
+    run --;
 
     // Process the "special" case when run is 0 and value = 1
     if (run == 0 && level == 0) {
@@ -290,19 +310,51 @@ BITVECTOR *encode_blk_coeff(int run, int level, int first) {
             rle = &blk_coeff_1_n;
         }
     } else if (run <= 31) {
-        if (run < VLC_BLOCK_LOOKUP && level < blk_rle_lookup[run + 1] - blk_rle_lookup[run]) {
-
+        if (level < blk_rle_lookup[run + 1] - blk_rle_lookup[run]) {
+            rle = &(blk_rle_table[blk_rle_lookup[run] + level]).code;
         }
     }
 
-    if (rle != NULL) {
+    if (rle != NULL && rle->binstring != NULL) {
         // found a usable vlc, no need to consider escape
-
+        res = bitvector_new(rle->binstring, rle->bit_len);
+        // bitvector_put_bit(res, sign);
+        return res;
     } else {
         // we know that value escape should happen, have to decide if the value is legitimate
+        level ++; // a trick here to treat positive and integer level the same way
         if (level < 256 && run < 64 && run >= 0) {
             // The value escape range
-            
+            res = bitvector_new(BLK_COEFF_ESCAPE, 24);
+
+            // bitvector_print(res);
+            bitvector_put_byte_off(res, run & 0x3f /* only 6 bits */, 6, 2);
+            // bitvector_print(res);
+
+            if (level < 128) {
+                escl = level & 0x7f;
+                if (sign) {
+                    escl = (~escl) + 1;
+                }
+                bitvector_put_byte_ent(res, escl);
+                // bitvector_print(res);
+            } else {
+                escl = level;
+                if (sign) {
+                    escl = (~escl) + 1;
+                    bitvector_put_byte_ent(res, 0x80);
+                    // bitvector_print(res);
+                } else {
+                    bitvector_put_byte_ent(res, 0x00);
+                    // bitvector_print(res);
+                }
+                bitvector_put_byte_ent(res, escl);
+                // bitvector_print(res);
+            }
+
+            // bitvector_print(res);
+
+            return res;
         }
     }
     // The value can't be encoded

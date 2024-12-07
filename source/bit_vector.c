@@ -38,7 +38,10 @@ void bitvector_put_binstring(BITVECTOR* bv, const char* bitstring) {
     if (bv->cap < bv->cursor) bv->cap = bv->cursor;
 }
 
-void bitvector_put_byte_off(BITVECTOR *bv, char val, char bits, char offset) {
+
+#include <stdio.h>
+void bitvector_put_byte_off(BITVECTOR *bv, unsigned char val, char bits, char offset) {
+    // printf("cap %d val %d bits %d off %d\n", bv->cap, val, bits, offset);
     long long int boff = bv->cursor >> 3;    // Byte offset in the BITVECTOR
     int bit_offset = 7 - (bv->cursor & 0x7); // Bit offset within the current byte
     val = (val >> (8 - offset - bits)) & ((1 << bits) - 1); // Extract the relevant bits from 'val'
@@ -51,12 +54,18 @@ void bitvector_put_byte_off(BITVECTOR *bv, char val, char bits, char offset) {
     while (bits > 0) {
         int bits_to_write = (bit_offset + 1 < bits) ? bit_offset + 1 : bits;
 
+        // printf("value[%d] = %d\n", boff, (val >> (bits - bits_to_write)) << (bit_offset + 1 - bits_to_write));
+
         // Clear and set the bits in the current byte
         bv->value[boff] &= ~(((1 << bits_to_write) - 1) << (bit_offset + 1 - bits_to_write));
+        // printf("Cleared %d\n", (unsigned char)~(((1 << bits_to_write) - 1) << (bit_offset + 1 - bits_to_write)));
         bv->value[boff] |= (val >> (bits - bits_to_write)) << (bit_offset + 1 - bits_to_write);
+        // printf("Set %d %d %d\n", (unsigned char)(val >> (bits - bits_to_write)) << (bit_offset + 1 - bits_to_write), (unsigned char)((bits - bits_to_write)), (unsigned char)val);
 
         // Adjust counters and variables for the next iteration
         bits -= bits_to_write;
+
+        // printf("bits write acc %d %d\n", bv->cursor, bits_to_write);
         bv->cursor += bits_to_write;
         if (bits > 0) {
             boff++;              // Move to the next byte
@@ -72,11 +81,11 @@ void bitvector_put_byte_off(BITVECTOR *bv, char val, char bits, char offset) {
 
 
 
-void bitvecotr_put_byte(BITVECTOR* bv, char val, char bits) {
+void bitvector_put_byte(BITVECTOR* bv, char val, char bits) {
     bitvector_put_byte_off(bv, val, bits, 0);
 }
 
-void bitvecotr_put_byte_ent(BITVECTOR* bv, char val) {
+void bitvector_put_byte_ent(BITVECTOR* bv, char val) {
     bitvector_put_byte_off(bv, val, 8, 0);
 }
 
@@ -90,7 +99,7 @@ long long int bitvector_pos(BITVECTOR* bv, long long int off) {
 void bitvector_concat(BITVECTOR* dest, BITVECTOR* src) {
     int i = 0;
 
-    bitvector_print(dest);
+    // bitvector_print(dest);
 
     if (dest->bits - dest->cursor < src->cap) {
         bitvector_expand_size(dest, src->bits);
@@ -105,10 +114,10 @@ void bitvector_concat(BITVECTOR* dest, BITVECTOR* src) {
     }
 
     for (;i < src->cap >> 3; i ++) {
-        bitvecotr_put_byte_ent(dest, src->value[i]);
+        bitvector_put_byte_ent(dest, src->value[i]);
     }
     if (src->cap & 0x7)
-        bitvecotr_put_byte(dest, src->value[i], src->cap & 0x7);
+        bitvector_put_byte(dest, src->value[i], src->cap & 0x7);
 }
 
 int bitvector_toarray(BITVECTOR* bv, char* output) {
