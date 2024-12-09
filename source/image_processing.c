@@ -634,7 +634,7 @@ int* run_length_encode(int zigzag_block[64], int encoded_array[128]) {
     for (int i = 0; i < index; i++) {
         return_array[i] = encoded_array[i];
     }
-    print_array(return_array, index);
+    // print_array(return_array, index);
     return return_array;
 }
 
