@@ -6,18 +6,24 @@
 // Special constants for non-numeric values
 #define MACROBLOCK_STUFFING 34
 #define MACROBLOCK_ESCAPE 35
-
+/*
 struct vlc_macroblock
 {
     const char* binstring;
     unsigned bit_len;
+    //unsigned x; // by width
+    //unsigned y; // by height
+    //unsigned time; // in second
+    //struct vlc_block blocks[6]; // the 4:2:0 blocks
 };
-
+*/
+/*
 struct vlc_block
 {
     const char* binstring;
     unsigned bit_len;
 };
+*/
 
 #define VLC_MACBLK(str) {str, sizeof(str)}
 #define VLC_BLK(str) {str, sizeof(str)}
