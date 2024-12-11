@@ -66,16 +66,15 @@ int main() {
     // Begin program!
     
     struct vlc_macroblock v;                // initialize empty macroblock
-    char out[50];                           // initialize empty buffer  -  MAYBE MAKE SMALLER LATER!
+    char file_header[15], sys_header[12], packet_header[7], out[50];                           // initialize empty buffers
     BITVECTOR* b = bitvector_new("", 8);    // initialize empty bitvector for final bitstream
     int pts_optional = 0;                   // appears to be unused within packet_header function
     
-    // initializing headers 1 to 3              num_bytes  info
-    mpeg1_file_header(2202035, out);        // [15]       { multiplex_rate, buffer }
-    mpeg1_sys_header(2202035, 0xe6, out);   // [12]       { no audio, 1 video stream, fixed ending, bound scale to 1024 bytes}
-    mpeg1_packet_header(pts_optional, out); // [7]        { useless_variable, buffer }
+    // initializing headers 1 to 3                       num_bytes  info
+    mpeg1_file_header(2202035, file_header);          // [15]       { multiplex_rate, buffer }
+    mpeg1_sys_header(2202035, 0xe6, sys_header);      // [12]       { no audio, 1 video stream, fixed ending, bound scale to 1024 bytes}
+    mpeg1_packet_header(pts_optional, packet_header); // [7]        { useless_variable, buffer }
     // sequence_header and onward are initialized further down after image info is processed
-    
     
     // Willam's test code here, not implemented currently but do not delete
     /*
@@ -177,9 +176,16 @@ int main() {
     // finish initializing front headers
     mpeg1_sequence_header(width, height, aspect_ratio, frame_rate, yby_size, out); // *out may need to be uint8_t instead of char
     mpeg1_gop(drop_frame, hour, minute, second, num_pic, closed, broken, out); // initialized first here, then every frame_skip number of images
-    mpeg1_picture_header(temporal_ref, picture_type, vbv_delay, bidir_vector, out);
+    
 
     for (int i = 0; i < img_count; i++) {
+     
+        // puts GOP header every frame_skip number of images
+        if ( i % frame_skip == 0) {
+            char gop_header[8]; // re-initialize for every header, necessary because time changes header content
+            mpeg1_gop(drop_frame, hour, minute, second, num_pic, closed, broken, gop_header); // if frame_skip == 1, this header is used every frame
+        }
+        
         // Converting images from RGB to YCbCr and saving bitstreams
         unsigned char *Y, *Cb, *Cr;
         convert_rgb_to_ycbcr(images[i], &Y, &Cb, &Cr);
@@ -192,18 +198,16 @@ int main() {
         vertical_pos = 0; // necessary for slice headers
 
         int quality_factor = 12; // factor to scale Q MATIX for quantization
-
+        char picture_header[9];
+        mpeg1_picture_header(temporal_ref, picture_type, vbv_delay, bidir_vector, out);
+        
         // Extracting macroblocks and applying DCT over them
         // (4 for Y of 8x8 blocks, one Cb of 8x8 block, and one Cr of 8x8 block)
         // ref: https://stackoverflow.com/questions/8310749/discrete-cosine-transform-dct-implementation-c
         // Y
         for (int y = 0; y < images[i]->height; y += 16) { 
-        
-            // puts GOP header every frame_skip number of images
-            if ( i % frame_skip == 0) {
-                mpeg1_gop(drop_frame, hour, minute, second, num_pic, closed, broken, out); // if frame_skip == 1, this header is used every frame
-            }
-            mpeg1_slice(quant_scale, vertical_pos++, out); // adds slice header, updates vertical position
+            char slice_header[10];
+            mpeg1_slice(quant_scale, vertical_pos++, slice_header); // adds slice header, updates vertical position
             
             for (int x = 0; x < images[i]->width; x += 16) {
         //for (int x = 0; x < images[i]->width; x += 16) {
