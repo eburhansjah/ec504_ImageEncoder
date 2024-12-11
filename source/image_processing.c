@@ -8,19 +8,19 @@
 #include "image_processing.h"
 #include "global_variables.h"
 
-// The following is the base quantization matrix
+// The following is the default intra Q MATRIX for MPEG-1
 // note: small quantization coeffs. retain more info from image
 //       large quantization coeffs. retain less info from image
 //       values are restricted to be ints 1 <= q[m,n] <= 255
 const int Q_MATRIX[8][8] = {
-    {16, 11, 10, 16, 24, 40, 51, 61},
-    {12, 12, 14, 19, 26, 58, 60, 55},
-    {14, 13, 16, 24, 40, 57, 69, 56},
-    {14, 17, 22, 29, 51, 87, 80, 62},
-    {18, 22, 37, 56, 68, 109, 103, 77},
-    {24, 35, 55, 64, 81, 104, 113, 92},
-    {49, 64, 78, 87, 103, 121, 120, 101},
-    {72, 92, 95, 98, 112, 100, 103, 99}
+    {8, 16, 19, 22, 26, 27, 29, 34},
+    {16, 16, 22, 24, 27, 29, 34, 37},
+    {19, 22, 26, 27, 29, 34, 34, 38},
+    {22, 22, 26, 27, 29, 34, 37, 40},
+    {22, 26, 27, 29, 32, 35, 40, 48},
+    {26, 27, 29, 32, 35, 40, 48, 58},
+    {26, 27, 29, 34, 38, 46, 56, 69},
+    {27, 29, 35, 38, 46, 56, 69, 83}
 };
 
 const int ZIGZAG_ORDER[8][8] = {
