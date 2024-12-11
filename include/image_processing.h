@@ -12,8 +12,10 @@ void extract_8x8_block(unsigned char *channel, int image_width, int start_x, int
 
 void DCT(const unsigned char block[64], float dct_block[64]);
 void fast_DCT(const unsigned char block[8][8], double dct_block[8][8]);
-void quantization(double dct_block[8][8], int quantized_block[8][8]);
+void scale_quantization_matrix(int scaled_q_matrix[8][8], int quality_factor);
+void quantization(double dct_block[8][8], int quantized_block[8][8], int quality_factor);
 void zigzag_scanning(int quantized_block[8][8], int zigzag_array[64]);
+void equalize_coefficients(int zigzag_array[64], int equalized_array[64]);
 int* run_length_encode(int array[64], int encode_array[128]);
 void dequantization(int quantized_block[8][8], double dct_block[8][8]);
 void IDCT(const float dct_block[64], unsigned char block[64]);

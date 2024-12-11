@@ -8,7 +8,7 @@
 #include "image_processing.h"
 #include "global_variables.h"
 
-// Change if needed
+// The following is the base quantization matrix
 // note: small quantization coeffs. retain more info from image
 //       large quantization coeffs. retain less info from image
 //       values are restricted to be ints 1 <= q[m,n] <= 255
@@ -304,16 +304,63 @@ void fast_DCT(const unsigned char block[8][8], double dct_block[8][8]){
 
 }
 
+// Fn. that scales Q_MATRIX according to quality factor [1, 100]
+// quality factor = 1 indicates higest compression ratio, gives worst quality
+// quality factor = 50 no change to base Q MATRIX
+// quality factor = 100 indicates lowest compression ratio, gives the best quality
+// ref: https://stackoverflow.com/questions/29215879/how-can-i-generalize-the-quantization-matrix-in-jpeg-compression
+void scale_quantization_matrix(int scaled_q_matrix[8][8], int quality_factor){
+    const int N = 8;
+
+    // Ensuring that quality factor is [1, 100]
+    if (quality_factor < 1){
+        quality_factor = 1;
+    }
+    if (quality_factor > 100){
+        quality_factor = 100;
+    }
+
+    float scaling_factor;
+    if(quality_factor < 50){
+        scaling_factor = 5000.0 / quality_factor;
+    } else {
+        scaling_factor = 200.0 - 2 * quality_factor;
+    }
+
+    for (int i=0; i<N; i++){
+        for(int j=0; j<N; j++){
+            scaled_q_matrix[i][j] = (int)round(Q_MATRIX[i][j] * scaling_factor / 100.0);
+
+            // Ensure that there are no 0 entries to prevent division by zero during the 
+            // quantization process
+            if(scaled_q_matrix[i][j] < 1){
+                scaled_q_matrix[i][j] = 1;
+            }
+        }
+    }    
+}
+
 // Fn. that reduces DCT coeffs. by dividing them with the 8x8 quantization matrix
-// goal would be to reduce high freq coeffs. more than low freq coeffs.
+// goal would be to reduce high freq coeffs. more than low freq coeffs. according to quality factor
 // This is the only time we introduce errors in the encoder decoder system
 // ref: https://asecuritysite.com/comms/dct
-void quantization(double dct_block[8][8], int quantized_block[8][8]){
+void quantization(double dct_block[8][8], int quantized_block[8][8], int quality_factor){
     const int N = 8;
+    int scaled_q_matrix[8][8];
+
+    scale_quantization_matrix(scaled_q_matrix, quality_factor);
+
+    printf("Scaled Q MATRIX: ");
+    for(int i=0; i<N; i++){
+        for(int j=0; j<N; j++){
+            printf("%4d ", scaled_q_matrix[i][j]);
+        }
+        printf("\n");
+    }
 
     for (int i=0; i < N; i++){
         for (int j = 0; j < N; j++){
-            quantized_block[i][j] = (int)round(dct_block[i][j]) / Q_MATRIX[i][j];
+            quantized_block[i][j] = (int)(round(dct_block[i][j]) / scaled_q_matrix[i][j]);
         }
     }
 }
