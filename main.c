@@ -39,13 +39,13 @@ int main() {
     uint8_t yby_size = 3;
     uint8_t drop_frame = 0; // set to 1 only if picture_rate is 29.97 Hz.  What is picture_rate?  Who knows!
     uint8_t hour = 0, minute = 0, second = 0; // time values increment throughout video
-    uint8_t num_pic = 0;    // ??
+    uint8_t num_pic = 0;    // [0-59] set by IEC standards for "time and control codes for video tape recorders", which costs money so we don't have it
     uint8_t closed = 1;     // keep set to 1 (means there are no motion vectors)
     uint8_t broken = 0;     // keep to 0 during encoding.  Only used for editing, does not apply for us.
     
     // SLICE HEADER
     uint8_t quant_scale = 1; // [1 to 31] scales reconstruction of DCT coeffs at slice/macroblock layer.  Zero forbidden.
-    uint8_t vertical_pos = 0;  // Changes based on the height within the slice, starts at zero and maxes at 175
+    uint8_t vertical_pos = 0;  // Changes based on the height within the slice, starts at zero and maxes at 175 - DO NOT CHANGE VALUE HERE
     
     // PICTURE LAYER
     uint8_t temporal_ref = 0; // incremented by 1 mod 1024 for each input picture.  Reset to zero with each GOP.
@@ -172,11 +172,11 @@ int main() {
     // for sequence header
     uint8_t width = images[0]->width;
     uint8_t height = images[0]->height;
-    const int num_slices = ceil(width / 8);
+    const int num_slices = ceil(width / 8); // MAKE SURE IS NOT GREATER THAN 175
     
     // finish initializing front headers
     mpeg1_sequence_header(width, height, aspect_ratio, frame_rate, yby_size, out); // *out may need to be uint8_t instead of char
-    mpeg1_gop(drop_frame, hour, minute, second, num_pic, closed, broken, out); // may need to be initalized in front of every image  
+    mpeg1_gop(drop_frame, hour, minute, second, num_pic, closed, broken, out); // initialized first here, then every frame_skip number of images
     mpeg1_picture_header(temporal_ref, picture_type, vbv_delay, bidir_vector, out);
 
     for (int i = 0; i < img_count; i++) {
@@ -187,13 +187,22 @@ int main() {
         // 4:2:0 subsampling on Cb and Cr channels
         unsigned char *Cb_sub, *Cr_sub;
         subsampling_420(Cb, Cr, images[i]->width, images[i]->height, &Cb_sub, &Cr_sub);
+        
+        // reset vertical position within slice for every image
+        vertical_pos = 0; // necessary for slice headers
 
         // Extracting macroblocks and applying DCT over them
         // (4 for Y of 8x8 blocks, one Cb of 8x8 block, and one Cr of 8x8 block)
         // ref: https://stackoverflow.com/questions/8310749/discrete-cosine-transform-dct-implementation-c
         // Y
-        
         for (int y = 0; y < images[i]->height; y += 16) { 
+        
+            // puts GOP header every frame_skip number of images
+            if ( i % frame_skip == 0) {
+                mpeg1_gop(drop_frame, hour, minute, second, num_pic, closed, broken, out); // if frame_skip == 1, this header is used every frame
+            }
+            mpeg1_slice(quant_scale, vertical_pos++, out); // adds slice header, updates vertical position
+            
             for (int x = 0; x < images[i]->width; x += 16) {
         //for (int x = 0; x < images[i]->width; x += 16) {
         //    for (int y = 0; y < images[i]->height; y += 16) {
@@ -211,9 +220,7 @@ int main() {
                 //    int y_start_pos = y + (block % 2) * 8;
                 //    int x_start_pos = x + (block / 2) * 8;
 
-                    extract_8x8_block(Y, images[i]->width, x_start_pos, y_start_pos, Y_blocks[block]); // ENSURE THIS WORKS VERTICALLY FOR SLICES
-                    // vertical_pos = vertical_pos + y_start_pos; // update vertical position for header [ ADD THIS LATER ]
-
+                    extract_8x8_block(Y, images[i]->width, x_start_pos, y_start_pos, Y_blocks[block]);
                     fast_DCT(Y_blocks[block], Y_dct_blocks[block]);
                     
                     /* // These coefficients are in the 0-400 range before quantization
