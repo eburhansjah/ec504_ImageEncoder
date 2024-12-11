@@ -44,7 +44,7 @@ void mpeg1_sys_header(uint32_t multiplex_rate, uint8_t packet_num, uint8_t out[1
 }
 
 // 1
-void mpeg1_packet_header(uint32_t pts_optinal ,uint8_t *out) {
+void mpeg1_packet_header(uint32_t pts_optinal, uint8_t *out) {
     *(out++) = 0x00;
     *(out++) = 0x00;
     *(out++) = 0x01;

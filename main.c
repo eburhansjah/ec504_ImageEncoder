@@ -12,23 +12,34 @@
 #include "mpeg1.h"
 #include "bit_vector.h"
 
-int main() {
-    struct vlc_macroblock v;               // initialize empty macroblock
-    char out[24];                          // initialize empty buffer
-    mpeg1_file_header(2202035, out);       // { multiplex_rate, buffer }
-    //display_u8arr(out, 12);              // { buffer, sizeof(buffer) }
-    mpeg1_sys_header(2202035, 0xe6, out);  // applies sys_header (no audio, 1 video stream, fixed ending, bound scale to 1024 bytes)
-    //display_u8arr(out, 15);
-    BITVECTOR* b = bitvector_new("", 8);   // initialize empty bitvector for final bitstream
+// To display a buffer:
+// display_u8arr(out, 12);              // { buffer, sizeof(buffer) }
+
+int main() { 
+    struct vlc_macroblock v;                // initialize empty macroblock
+    char out[50];                           // initialize empty buffer  -  MAYBE MAKE SMALLER LATER!
+    BITVECTOR* b = bitvector_new("", 8);    // initialize empty bitvector for final bitstream
+    int pts_optional = 0;                   // appears to be unused within packet_header function
     
-    encode_macroblock_header(33, b);       // puts header onto bitstream
+    // initializing first headers              num_bytes  info
+    mpeg1_file_header(2202035, out);        // [15]       { multiplex_rate, buffer }
+    mpeg1_sys_header(2202035, 0xe6, out);   // [12]       { no audio, 1 video stream, fixed ending, bound scale to 1024 bytes}
+    mpeg1_packet_header(pts_optional, out); // [7]        { useless_variable, buffer }
+    // sequence_header and onward are initialized further down after image info is processed
+    
+    
+    
+    //encode_macroblock_header(33, b);        // FUNCTION UNFINISHED
+    
+    
+    
     bitvector_concat(b, encode_macblk_address_value(10));  // function to get the encoded bits for a given value
     bitvector_concat(b, encode_macblk_address_value(33));
-    //bitvector_print(b); // no segfault
-
+    
     printf("ready p\n");
+    bitvector_print(b);
     encode_blk_coeff(3, -127, 0); // { run, level, first }
-    //bitvector_print();  
+
     const char *images_folder = "./images";
     const char *bitstream_folder = "./bitstreams";
 
@@ -113,6 +124,41 @@ int main() {
         free(images);
         return -1;
     }
+    
+    // for sequence header
+    uint8_t width = images[0]->width;
+    uint8_t height = images[0]->height;
+    
+    // for GOP header
+    uint8_t aspect_ratio = 1;  // A: 1 F: 4 YBY : 3 (per William's notes)
+    uint8_t frame_rate = 4;
+    uint8_t yby_size = 3;
+    uint8_t drop_frame = 0; // ??
+    uint8_t hour = 0, minute = 0, second = 0; // time values increment throughout video
+    uint8_t num_pic = 0;    // ??
+    uint8_t closed = 0;     // ??
+    uint8_t broken = 0;     // ??
+    
+    // for slice header
+    uint8_t quant_scale = 0; // ??
+    uint8_t vertical_pos = 0;  // Changes based on the height within the slice, starts at zero and maxes at 175
+    
+    // finish initializing front headers
+    mpeg1_sequence_header(width, height, aspect_ratio, frame_rate, yby_size, out); // *out may need to be uint8_t instead of char
+    mpeg1_gop(drop_frame, hour, minute, second, num_pic, closed, broken, out); // may need to be initalized in front of every image
+    mpeg1_slice(quant_scale, vertical_pos, out);  // initialize in front of every slice
+    
+    // calculating slice dimensions and number of slices
+    const int num_slices;  //  MUST UPDATE LATER
+    
+    // these inputs and three headers are repeated at the beginning of every image
+    uint8_t temporal_ref = 0; // ??
+    uint8_t picture_type = 1; // 001 for I-frame
+    uint8_t vbv_delay = 0;    // ??
+    uint8_t* bidir_vector;    // ??
+    
+    mpeg1_picture_header(temporal_ref, picture_type, vbv_delay, bidir_vector, out);
+    // Slice header
 
     for (int i = 0; i < img_count; i++) {
         // Converting images from RGB to YCbCr and saving bitstreams
@@ -140,7 +186,7 @@ int main() {
                     int x_start_pos = x + (block % 2) * 8;
                     int y_start_pos = y + (block / 2) * 8;
 
-                    extract_8x8_block(Y, images[i]->width, x_start_pos, y_start_pos, Y_blocks[block]);
+                    extract_8x8_block(Y, images[i]->width, x_start_pos, y_start_pos, Y_blocks[block]); // ENSURE THIS WORKS VERTICALLY FOR SLICES
 
                     fast_DCT(Y_blocks[block], Y_dct_blocks[block]);
                     
@@ -210,12 +256,12 @@ int main() {
                         
                         temp_coeff_bv = encode_blk_coeff(run, level, first); // encodes each coefficient into its individual BV
                         //printf("%d %d    ", RLE_index, temp_dest_bv->bits);
-                        bitvector_concat(temp_dest_bv, temp_coeff_bv); 
+                        //bitvector_concat(temp_dest_bv, temp_coeff_bv); 
                         run_index += 2;
                         level_index += 2;
                     }
                     
-                    bitvector_concat(b, temp_dest_bv); // concatenate to BITSTREAM
+                    //bitvector_concat(b, temp_dest_bv); // concatenate to BITSTREAM
                     //bitvector_print(temp_dest_bv);
                     //bitvector_print(b);
                     
