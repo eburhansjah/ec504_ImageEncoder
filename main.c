@@ -3,6 +3,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <math.h>
 
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -16,32 +17,75 @@
 // display_u8arr(out, 12);              // { buffer, sizeof(buffer) }
 
 int main() { 
+    /* 
+    CHANGING HEADER PARAMETERS
+    - Here be dragons
+    - Everything with a ?? I am insure how it works and/or what the value should be
+    
+    Headers occur in order:
+    1-3. First three headers (file_header, sys_header, packet_header) initialized at beginning of program
+    4. Sequence_header initialized after we know image size
+    5. GOP headers every $frame_skip
+    6. Picture header for every picture
+    7. Slice header for every slice of that picture
+    8. Macroblock header for every macroblock
+    - Then, repeat 5-8 as needed until data is parsed
+    */
+    
+    // GOP HEADER
+    const int frame_skip = 1;  // how often to put a GOP frame header.  1 is before every picture, 2 is every other picture, etc.
+    uint8_t aspect_ratio = 1;  // A: 1 F: 4 YBY : 3 (per William's notes)
+    uint8_t frame_rate = 4;
+    uint8_t yby_size = 3;
+    uint8_t drop_frame = 0; // set to 1 only if picture_rate is 29.97 Hz.  What is picture_rate?  Who knows!
+    uint8_t hour = 0, minute = 0, second = 0; // time values increment throughout video
+    uint8_t num_pic = 0;    // ??
+    uint8_t closed = 1;     // keep set to 1 (means there are no motion vectors)
+    uint8_t broken = 0;     // keep to 0 during encoding.  Only used for editing, does not apply for us.
+    
+    // SLICE HEADER
+    uint8_t quant_scale = 1; // [1 to 31] scales reconstruction of DCT coeffs at slice/macroblock layer.  Zero forbidden.
+    uint8_t vertical_pos = 0;  // Changes based on the height within the slice, starts at zero and maxes at 175
+    
+    // PICTURE LAYER
+    uint8_t temporal_ref = 0; // incremented by 1 mod 1024 for each input picture.  Reset to zero with each GOP.
+    uint8_t picture_type = 1; // 001 for I-frame (and we only have I-frames)
+    uint8_t* bidir_vector;    // ??
+    
+    // PICTURE LAYER 2.0 - calculating VBV delay
+    uint8_t clock_speed = 1000000000; // set at 1 GHz
+    uint8_t bitrate = 1; // ??
+    uint8_t vbv_occupancy = 0; // measured before removing picture layer but after removing GOP layer (?????)
+    uint8_t vbv_delay = clock_speed * vbv_occupancy / bitrate;    // prevents over/underflow of decoder buffer.
+    
+    // default locations for files
+    const char *images_folder = "./images";        // load images from here
+    const char *bitstream_folder = "./bitstreams"; // save bitstreams here
+    
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Begin program!
+    
     struct vlc_macroblock v;                // initialize empty macroblock
     char out[50];                           // initialize empty buffer  -  MAYBE MAKE SMALLER LATER!
     BITVECTOR* b = bitvector_new("", 8);    // initialize empty bitvector for final bitstream
     int pts_optional = 0;                   // appears to be unused within packet_header function
     
-    // initializing first headers              num_bytes  info
+    // initializing headers 1 to 3              num_bytes  info
     mpeg1_file_header(2202035, out);        // [15]       { multiplex_rate, buffer }
     mpeg1_sys_header(2202035, 0xe6, out);   // [12]       { no audio, 1 video stream, fixed ending, bound scale to 1024 bytes}
     mpeg1_packet_header(pts_optional, out); // [7]        { useless_variable, buffer }
     // sequence_header and onward are initialized further down after image info is processed
     
     
-    
+    // Willam's test code here, not implemented currently but do not delete
+    /*
     //encode_macroblock_header(33, b);        // FUNCTION UNFINISHED
-    
-    
-    
     bitvector_concat(b, encode_macblk_address_value(10));  // function to get the encoded bits for a given value
     bitvector_concat(b, encode_macblk_address_value(33));
-    
     printf("ready p\n");
     bitvector_print(b);
     encode_blk_coeff(3, -127, 0); // { run, level, first }
-
-    const char *images_folder = "./images";
-    const char *bitstream_folder = "./bitstreams";
+    */
 
     // Generate folder to store bitstreams if it does not exist
     struct stat st = {0};
@@ -128,34 +172,11 @@ int main() {
     // for sequence header
     uint8_t width = images[0]->width;
     uint8_t height = images[0]->height;
-    
-    // for GOP header
-    uint8_t aspect_ratio = 1;  // A: 1 F: 4 YBY : 3 (per William's notes)
-    uint8_t frame_rate = 4;
-    uint8_t yby_size = 3;
-    uint8_t drop_frame = 0; // ??
-    uint8_t hour = 0, minute = 0, second = 0; // time values increment throughout video
-    uint8_t num_pic = 0;    // ??
-    uint8_t closed = 0;     // ??
-    uint8_t broken = 0;     // ??
-    
-    // for slice header
-    uint8_t quant_scale = 0; // ??
-    uint8_t vertical_pos = 0;  // Changes based on the height within the slice, starts at zero and maxes at 175
+    const int num_slices = ceil(width / 8);
     
     // finish initializing front headers
     mpeg1_sequence_header(width, height, aspect_ratio, frame_rate, yby_size, out); // *out may need to be uint8_t instead of char
-    mpeg1_gop(drop_frame, hour, minute, second, num_pic, closed, broken, out); // may need to be initalized in front of every image
-        
-    // calculating slice dimensions and number of slices
-    const int num_slices;  //  MUST UPDATE LATER
-    
-    // these inputs and three headers are repeated at the beginning of every image
-    uint8_t temporal_ref = 0; // ??
-    uint8_t picture_type = 1; // 001 for I-frame
-    uint8_t vbv_delay = 0;    // ??
-    uint8_t* bidir_vector;    // ??
-    
+    mpeg1_gop(drop_frame, hour, minute, second, num_pic, closed, broken, out); // may need to be initalized in front of every image  
     mpeg1_picture_header(temporal_ref, picture_type, vbv_delay, bidir_vector, out);
 
     for (int i = 0; i < img_count; i++) {
