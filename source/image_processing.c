@@ -350,6 +350,7 @@ void quantization(double dct_block[8][8], int quantized_block[8][8], int quality
 
     scale_quantization_matrix(scaled_q_matrix, quality_factor);
 
+    /*
     printf("Scaled Q MATRIX: ");
     for(int i=0; i<N; i++){
         for(int j=0; j<N; j++){
@@ -357,6 +358,7 @@ void quantization(double dct_block[8][8], int quantized_block[8][8], int quality
         }
         printf("\n");
     }
+    */
 
     for (int i=0; i < N; i++){
         for (int j = 0; j < N; j++){
