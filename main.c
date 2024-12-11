@@ -146,8 +146,7 @@ int main() {
     // finish initializing front headers
     mpeg1_sequence_header(width, height, aspect_ratio, frame_rate, yby_size, out); // *out may need to be uint8_t instead of char
     mpeg1_gop(drop_frame, hour, minute, second, num_pic, closed, broken, out); // may need to be initalized in front of every image
-    mpeg1_slice(quant_scale, vertical_pos, out);  // initialize in front of every slice
-    
+        
     // calculating slice dimensions and number of slices
     const int num_slices;  //  MUST UPDATE LATER
     
@@ -158,7 +157,6 @@ int main() {
     uint8_t* bidir_vector;    // ??
     
     mpeg1_picture_header(temporal_ref, picture_type, vbv_delay, bidir_vector, out);
-    // Slice header
 
     for (int i = 0; i < img_count; i++) {
         // Converting images from RGB to YCbCr and saving bitstreams
@@ -173,8 +171,11 @@ int main() {
         // (4 for Y of 8x8 blocks, one Cb of 8x8 block, and one Cr of 8x8 block)
         // ref: https://stackoverflow.com/questions/8310749/discrete-cosine-transform-dct-implementation-c
         // Y
-        for (int y = 0; y < images[i]->height; y += 16) {
-            for (int x = 0; x < images[i]->width; x += 16) {
+        
+        //for (int y = 0; y < images[i]->height; y += 16) { ///////// old code, keep!
+        //    for (int x = 0; x < images[i]->width; x += 16) {
+        for (int x = 0; x < images[i]->width; x += 16) {
+            for (int y = 0; y < images[i]->height; y += 16) {
                 // Dividing Y into 4 8x8 blocks
                 unsigned char Y_blocks[4][8][8]; // Array that stores 4 8x8 blocks
                 double Y_dct_blocks[4][8][8];
@@ -182,11 +183,15 @@ int main() {
                 int Y_zigzag[4][64];
                 int Y_equalized[4][64];
 
+                //for (int block = 0; block < 4; block++) {  ///////// old code, keep!
+                //    int x_start_pos = x + (block % 2) * 8;
+                //    int y_start_pos = y + (block / 2) * 8;
                 for (int block = 0; block < 4; block++) {
-                    int x_start_pos = x + (block % 2) * 8;
-                    int y_start_pos = y + (block / 2) * 8;
+                    int y_start_pos = y + (block % 2) * 8;
+                    int x_start_pos = x + (block / 2) * 8;
 
                     extract_8x8_block(Y, images[i]->width, x_start_pos, y_start_pos, Y_blocks[block]); // ENSURE THIS WORKS VERTICALLY FOR SLICES
+                    // vertical_pos = vertical_pos + y_start_pos; // update vertical position for header [ ADD THIS LATER ]
 
                     fast_DCT(Y_blocks[block], Y_dct_blocks[block]);
                     
@@ -255,7 +260,6 @@ int main() {
                         }
                         
                         temp_coeff_bv = encode_blk_coeff(run, level, first); // encodes each coefficient into its individual BV
-                        //printf("%d %d    ", RLE_index, temp_dest_bv->bits);
                         //bitvector_concat(temp_dest_bv, temp_coeff_bv); 
                         run_index += 2;
                         level_index += 2;
