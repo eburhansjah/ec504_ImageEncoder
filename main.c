@@ -288,15 +288,13 @@ int main() {
                         }
                         
                         temp_coeff_bv = encode_blk_coeff(run, level, first); // encodes each coefficient into its individual BV
-                        //bitvector_concat(temp_dest_bv, temp_coeff_bv); 
+                        bitvector_concat(temp_dest_bv, temp_coeff_bv); 
                         run_index += 2;
                         level_index += 2;
                     }
                     
-                    //bitvector_concat(b, temp_dest_bv); // concatenate to BITSTREAM
+                    bitvector_concat(b, temp_dest_bv); // concatenate to BITSTREAM
                     //bitvector_print(temp_dest_bv);
-                    //bitvector_print(b);
-                    
                 }
 
                 // Diving Cb and Cr each into 1 8x8 block
