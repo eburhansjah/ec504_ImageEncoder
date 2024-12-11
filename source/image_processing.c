@@ -329,6 +329,23 @@ void zigzag_scanning(int quantized_block[8][8], int zigzag_array[64]){
     }
 }
 
+// Removes zeros from quantized values of 1D zigzag array, enables successful VLC coding
+// Adds 1 if coefficient is greater than zero, subtracts 1 if coefficient is negative
+void equalize_coefficients(int zigzag_array[64], int equalized_array[64]) {
+    const int N = 64;
+    int coeff;
+    for (int i = 0; i < N; i++){
+        coeff = zigzag_array[i];
+        if (coeff >= 0) {
+            coeff++;
+        }
+        else {
+            coeff--;
+        }
+        equalized_array[i] = coeff;
+    }
+}
+
 // Fn. for dequantization (decoding)
 // Quantized block are multipliedd by the Q matrix to get DCT values back before running Inverse DCT
 // ref: https://ayushijani.github.io/Projectcontent.html
@@ -619,6 +636,9 @@ int* run_length_encode(int zigzag_block[64], int encoded_array[128]) {
             while (zigzag_block[i] == zigzag_block[i+1] && i + 1 < 64) {
                 count++;
                 i++;
+                if (count == 33) {  // accounts for maximum run of 33 in VLC coding
+                    break;
+                }
             }
             encoded_array[index++] = count;
             count = 1;

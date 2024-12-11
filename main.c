@@ -24,7 +24,7 @@ int main() {
     encode_macroblock_header(33, b);       // puts header onto bitstream
     bitvector_concat(b, encode_macblk_address_value(10));  // function to get the encoded bits for a given value
     bitvector_concat(b, encode_macblk_address_value(33));
-    // bitvector_print(b);
+    //bitvector_print(b); // no segfault
 
     printf("ready p\n");
     encode_blk_coeff(3, -127, 0); // { run, level, first }
@@ -134,6 +134,7 @@ int main() {
                 double Y_dct_blocks[4][8][8];
                 int Y_quantized[4][8][8];
                 int Y_zigzag[4][64];
+                int Y_equalized[4][64];
 
                 for (int block = 0; block < 4; block++) {
                     int x_start_pos = x + (block % 2) * 8;
@@ -142,7 +143,8 @@ int main() {
                     extract_8x8_block(Y, images[i]->width, x_start_pos, y_start_pos, Y_blocks[block]);
 
                     fast_DCT(Y_blocks[block], Y_dct_blocks[block]);
-                    /*
+                    
+                    /* // These coefficients are in the 0-400 range before quantization
                     // Printing transformed DCT coeffs. 
                     printf("Fast DCT on Y Block:\n");
                     for (int i = 0; i < 8; i++) {
@@ -152,28 +154,71 @@ int main() {
                         printf("\n");
                     }
                     */
-
+                    
+                    // changes coefficients to range +-30
                     quantization(Y_dct_blocks[block], Y_quantized[block]);
                     // // Printing quantization result on Y block
-                    // printf("Quantized coeffs. on Y Block:\n");
-                    // for (int i = 0; i < 8; i++) {
-                    //     for (int j = 0; j < 8; j++) {
-                    //         printf("%4d ", Y_quantized[0][i][j]);
-                    //     }
-                    //     printf("\n");
-                    // }
-
-                    zigzag_scanning(Y_quantized[block], Y_zigzag[block]);
-                    // Printing zigzag scanning result on Y block
                     /*
-                    printf("Zigzag Scanned Coeffs. on Y Block:\n");
-                    for (int i = 0; i < 64; i++) {
-                        printf("%4d ", Y_zigzag[0][i]);
+                    printf("Quantized coeffs. on Y Block:\n");
+                    for (int i = 0; i < 8; i++) {
+                        for (int j = 0; j < 8; j++) {
+                            int block_num = 0; // only prints first of 4 blocks, change int if needed
+                            printf("%4d ", Y_quantized[block_num][i][j]);
+                        }
+                        printf("\n");
                     }
                     */
-                    // printf("\n");
+
+                    zigzag_scanning(Y_quantized[block], Y_zigzag[block]);  // puts blocks in zigzag scan order
+                    equalize_coefficients(Y_zigzag[block], Y_equalized[block]); // removes zeros by +-1
+                    
+                    /*
+                    // Printing zigzag scanning result on Y block
+                    printf("Equalized zigzag-scanned coeffs. on Y block:\n");
+                    for (int i = 0; i < 64; i++) {
+                        printf("%4d ", Y_equalized[0][i]);
+                    }
+                    printf("\n");
+                    */
+                    
+                    // Creates 1D array of RLE-encoded coefficients of "tuples" (coeff, run_length) : [coeff1, RL1, coeff2, RL2, etc.]
                     int Y_encoded_array[128];
-                    int *Y_RLE = run_length_encode(Y_zigzag[block], Y_encoded_array);
+                    int *Y_RLE = run_length_encode(Y_equalized[block], Y_encoded_array);
+                    
+                    
+                    // VLC encoding
+                    int level_index = 0; 
+                    int run_index = 1;   
+                    int run, level, first;
+                    BITVECTOR* temp_coeff_bv = bitvector_new("", 16);       // will hold individual encoded coefficients
+                    BITVECTOR* temp_dest_bv = bitvector_new("", 8);      // vector that builds through concatenation
+                    for (int RLE_index = 0; RLE_index < 64; RLE_index++) {  // iterate through entire 1x64 zigzag-scanned array
+                        // determines whether the coefficient is the first one in the zigzag block, important for encoding.
+                        if (RLE_index == 0) {
+                            first = 1;
+                        }
+                        else {
+                            first = 0;
+                        }
+                        //
+                        level = Y_encoded_array[level_index];
+                        run = Y_encoded_array[run_index];
+                        
+                        if (run == 0 || level == 0) { // accounts for zeros in RLE array, they have no relevant value
+                            break;
+                        }
+                        
+                        temp_coeff_bv = encode_blk_coeff(run, level, first); // encodes each coefficient into its individual BV
+                        //printf("%d %d    ", RLE_index, temp_dest_bv->bits);
+                        bitvector_concat(temp_dest_bv, temp_coeff_bv); 
+                        run_index += 2;
+                        level_index += 2;
+                    }
+                    
+                    bitvector_concat(b, temp_dest_bv); // concatenate to BITSTREAM
+                    //bitvector_print(temp_dest_bv);
+                    //bitvector_print(b);
+                    
                 }
 
                 // Diving Cb and Cr each into 1 8x8 block

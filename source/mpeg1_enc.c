@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 // http://andrewduncan.net/mpeg/mpeg-1.html
+// One of these
 void mpeg1_file_header(uint32_t multiplex_rate, uint8_t out[12]) {
     memcpy(out, "\x00\x00\x01\xba", 4);
     out[4] = 0x21; // clock reference not set
@@ -19,6 +20,7 @@ void mpeg1_file_header(uint32_t multiplex_rate, uint8_t out[12]) {
     out[11] = p[0];
 }
 
+// 1
 void mpeg1_sys_header(uint32_t multiplex_rate, uint8_t packet_num, uint8_t out[15]) {
     memcpy(out, "\x00\x00\x01\xbb", 4);
     out[4] = 0x00;
@@ -41,6 +43,7 @@ void mpeg1_sys_header(uint32_t multiplex_rate, uint8_t packet_num, uint8_t out[1
     out[14] = packet_num;
 }
 
+// 1
 void mpeg1_packet_header(uint32_t pts_optinal ,uint8_t *out) {
     *(out++) = 0x00;
     *(out++) = 0x00;
@@ -57,6 +60,7 @@ void mpeg1_packet_header(uint32_t pts_optinal ,uint8_t *out) {
 }
 
 // A: 1 F: 4 YBY : 3
+// Only one video sequence header, only need once - this is where video begins
 void mpeg1_sequence_header(uint16_t width, uint16_t height, uint8_t aspect_ratio, uint8_t frame_rate, uint8_t yby_size, uint8_t* out) {
     *(out++) = 0x00;
     *(out++) = 0x00;
@@ -77,6 +81,8 @@ void mpeg1_sequence_end(uint8_t out[4]) {
 }
 
 // A: 1 F: 4 YBY : 3
+// each video sequence is many GOP
+// may need more than one of these headers - NEED TO TEST THIS, FIGURE OUT HOW MANY GOP TO USE
 void mpeg1_gop(uint8_t drop_frame, uint8_t hour, uint8_t minute, 
     uint8_t second, uint8_t num_pic, uint8_t closed, uint8_t broken, uint8_t* out) {
     *(out++) = 0x00;
@@ -117,7 +123,7 @@ void mpeg1_slice(uint8_t quant_scale, uint8_t vertical_pos /* <= 175 */, uint8_t
     *(out++) = 0x00;
     *(out++) = 0x00;
     *(out++) = 0x01;
-    *(out++) = vertical_pos; // slice header
+    *(out++) = vertical_pos; // slice header, cannot be greater than (8*175)
     *(out) = (quant_scale & 0x1f) << 3; 
     // special process, slice contain packed macroblocks
 }

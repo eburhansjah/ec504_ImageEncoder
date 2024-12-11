@@ -99,7 +99,7 @@ long long int bitvector_pos(BITVECTOR* bv, long long int off) {
 void bitvector_concat(BITVECTOR* dest, BITVECTOR* src) {
     int i = 0;
 
-    // bitvector_print(dest);
+    //bitvector_print(dest);
 
     if (dest->bits - dest->cursor < src->cap) {
         bitvector_expand_size(dest, src->bits);
@@ -133,13 +133,25 @@ int bitvector_toarray(BITVECTOR* bv, char* output) {
 }
 
 void bitvector_expand_size(BITVECTOR* bv, long long int speculative) {
+    int * new_pointer;
     if (speculative != 0) {
-        bv->value = realloc(bv->value, (bv->bits >> 3) + (speculative) + 1);
+        if (new_pointer = realloc(bv->value, (bv->bits >> 3) + (speculative) + 1)) {
+            bv->value = new_pointer;
+        }
+        else {
+            printf("REALLOC FAILED");
+        }
         bv->bits = bv->bits + speculative << 3;
-    } else {
+    } 
+    else {
         // Double the size if no speculative guess
-        bv->value = realloc(bv->value, (bv->bits >> 2) + 1);
-        bv->bits = bv->bits << 1;
+        if (new_pointer = realloc(bv->value, (bv->bits >> 2) + 1)) {
+            bv->value = new_pointer;
+            bv->bits = bv->bits << 1;
+        }
+        else {
+            printf("REALLOC FAILED");
+        }
     }
 }
 

@@ -117,6 +117,7 @@ BITVECTOR *encode_macblk_encoding_value(int value) {
     return NULL;
 }
 
+// for DCT coefficients of Y (DC ONLY, AC will be bigger)
 struct vlc_macroblock dc_sz_luma_table[9] = {
     VLC_BLK("100"), // 0
     VLC_BLK("00"), // 1
@@ -128,6 +129,7 @@ struct vlc_macroblock dc_sz_luma_table[9] = {
     VLC_BLK("1111110"), // 8
 };
 
+// 
 struct vlc_macroblock dc_sz_chroma_table[9] = {
     VLC_BLK("00"), // 0
     VLC_BLK("101"), // 1
