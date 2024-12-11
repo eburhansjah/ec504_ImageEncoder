@@ -191,6 +191,8 @@ int main() {
         // reset vertical position within slice for every image
         vertical_pos = 0; // necessary for slice headers
 
+        int quality_factor = 12; // factor to scale Q MATIX for quantization
+
         // Extracting macroblocks and applying DCT over them
         // (4 for Y of 8x8 blocks, one Cb of 8x8 block, and one Cr of 8x8 block)
         // ref: https://stackoverflow.com/questions/8310749/discrete-cosine-transform-dct-implementation-c
@@ -235,7 +237,7 @@ int main() {
                     */
                     
                     // changes coefficients to range +-30
-                    quantization(Y_dct_blocks[block], Y_quantized[block]);
+                    quantization(Y_dct_blocks[block], Y_quantized[block], quality_factor);
                     // // Printing quantization result on Y block
                     /*
                     printf("Quantized coeffs. on Y Block:\n");
@@ -317,16 +319,18 @@ int main() {
 
                 int Cb_quantized[8][8];
                 int Cr_quantized[8][8];
-                quantization(Cb_dct, Cb_quantized);
-                quantization(Cr_dct, Cr_quantized);
+                quantization(Cb_dct, Cb_quantized, quality_factor);
+                quantization(Cr_dct, Cr_quantized, quality_factor);
 
-                // printf("Quantized coeffs. on Cb Block:\n");
-                // for (int i = 0; i < 8; i++) {
-                //     for (int j = 0; j < 8; j++) {
-                //         printf("%4d ", Cb_quantized[i][j]);
-                //     }
-                //     printf("\n");
-                // }
+                /*
+                printf("Quantized coeffs. on Cb Block:\n");
+                for (int i = 0; i < 8; i++) {
+                    for (int j = 0; j < 8; j++) {
+                        printf("%4d ", Cb_quantized[i][j]);
+                    }
+                    printf("\n");
+                }
+                */
 
                 int Cb_zigzag[64];
                 int Cr_zigzag[64];
