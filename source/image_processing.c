@@ -7,6 +7,7 @@
 
 #include "image_processing.h"
 #include "global_variables.h"
+#include "bit_vector.h"
 
 // The following is the default intra Q MATRIX for MPEG-1
 // note: small quantization coeffs. retain more info from image
@@ -392,6 +393,35 @@ void equalize_coefficients(int zigzag_array[64], int equalized_array[64]) {
             coeff--;
         }
         equalized_array[i] = coeff;
+    }
+}
+
+void VLC_encode(int RLE_array[128], BITVECTOR* temp_dest_bv) {
+
+    // VLC encoding
+    int level_index = 0; 
+    int run_index = 1;   
+    int run, level, first;
+    BITVECTOR* temp_coeff_bv = bitvector_new("", 16);       // will hold individual encoded coefficients
+    for (int RLE_index = 0; RLE_index < 64; RLE_index++) {  // iterate through entire 1x64 zigzag-scanned array
+        // determines whether the coefficient is the first one in the zigzag block, important for encoding.
+        if (RLE_index == 0) {
+            first = 1;
+        }
+        else {
+            first = 0;
+        }
+        level = RLE_array[level_index];
+        run = RLE_array[run_index];
+                        
+        if (run == 0 || level == 0) { // accounts for zeros in RLE array, they have no relevant value
+            break;
+        }
+                        
+        //temp_dest_bv = encode_blk_coeff(run, level, first); // encodes each coefficient into its individual BV
+        //bitvector_concat(temp_dest_bv, temp_coeff_bv); 
+        run_index += 2;
+        level_index += 2;
     }
 }
 

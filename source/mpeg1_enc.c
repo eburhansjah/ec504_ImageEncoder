@@ -133,3 +133,16 @@ void display_u8arr(uint8_t* buf, int32_t size) {
         printf("0x%02x ", buf[i]);
     printf("\n");
 }
+
+char* concat_char(char* array1, char* array2) {
+    int n1 = sizeof(array1) / sizeof(char); // gets sizes of two arrays
+    int n2 = sizeof(array2) / sizeof(char);
+    char* output[n1 + n2];                  // initialize new output array  
+    for (int i = 0; i < n1; i++) {
+        output[i] = array1[i];
+    }
+    for (int i = n1; i < n1 + n2; i++) {
+        output[i] = array2[i];
+    }
+    return output;
+}

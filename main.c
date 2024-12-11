@@ -67,7 +67,6 @@ int main() {
     
     struct vlc_macroblock v;                // initialize empty macroblock
     char file_header[15], sys_header[12], packet_header[7], out[50];                           // initialize empty buffers
-    BITVECTOR* b = bitvector_new("", 8);    // initialize empty bitvector for final bitstream
     int pts_optional = 0;                   // appears to be unused within packet_header function
     
     // initializing headers 1 to 3                       num_bytes  info
@@ -76,7 +75,7 @@ int main() {
     mpeg1_packet_header(pts_optional, packet_header); // [7]        { useless_variable, buffer }
     // sequence_header and onward are initialized further down after image info is processed
     
-    // Willam's test code here, not implemented currently but do not delete
+    // Willam's test code here, not implemented currently but do not delete (this is for macroblock/block level)
     /*
     //encode_macroblock_header(33, b);        // FUNCTION UNFINISHED
     bitvector_concat(b, encode_macblk_address_value(10));  // function to get the encoded bits for a given value
@@ -205,27 +204,27 @@ int main() {
         // (4 for Y of 8x8 blocks, one Cb of 8x8 block, and one Cr of 8x8 block)
         // ref: https://stackoverflow.com/questions/8310749/discrete-cosine-transform-dct-implementation-c
         // Y
-        for (int y = 0; y < images[i]->height; y += 16) { 
+        for (int y = 0; y < images[i]->height; y += 16) { // SLICE LEVEL
+        
             char slice_header[10];
             mpeg1_slice(quant_scale, vertical_pos++, slice_header); // adds slice header, updates vertical position
-            
-            for (int x = 0; x < images[i]->width; x += 16) {
-        //for (int x = 0; x < images[i]->width; x += 16) {
-        //    for (int y = 0; y < images[i]->height; y += 16) {
-                // Dividing Y into 4 8x8 blocks
+
+            for (int x = 0; x < images[i]->width; x += 16) { // MACROBLOCK LEVEL
                 unsigned char Y_blocks[4][8][8]; // Array that stores 4 8x8 blocks
                 double Y_dct_blocks[4][8][8];
                 int Y_quantized[4][8][8];
                 int Y_zigzag[4][64];
                 int Y_equalized[4][64];
 
-                for (int block = 0; block < 4; block++) {
+                for (int block = 0; block < 4; block++) { // BLOCK LEVEL
+                
+                    // macroblock and block header stuff
+                    // add here
+                    
+                    // position within slice
                     int x_start_pos = x + (block % 2) * 8;
                     int y_start_pos = y + (block / 2) * 8;
-                //for (int block = 0; block < 4; block++) {
-                //    int y_start_pos = y + (block % 2) * 8;
-                //    int x_start_pos = x + (block / 2) * 8;
-
+                    
                     extract_8x8_block(Y, images[i]->width, x_start_pos, y_start_pos, Y_blocks[block]);
                     fast_DCT(Y_blocks[block], Y_dct_blocks[block]);
                     
@@ -270,36 +269,16 @@ int main() {
                     int Y_encoded_array[128];
                     int *Y_RLE = run_length_encode(Y_equalized[block], Y_encoded_array);
                     
+                    // encodes Y_array in VLC code and then converts it to a char array
+                    BITVECTOR* temp_bv = bitvector_new("", 8);
+                    VLC_encode(Y_encoded_array, temp_bv);                             // VLC encode
+                    char Y_encoded_char_array[temp_bv->cap >> 3];
+                    int Y_length = bitvector_toarray(temp_bv, Y_encoded_char_array);  // to char
                     
-                    // VLC encoding
-                    int level_index = 0; 
-                    int run_index = 1;   
-                    int run, level, first;
-                    BITVECTOR* temp_coeff_bv = bitvector_new("", 16);       // will hold individual encoded coefficients
-                    BITVECTOR* temp_dest_bv = bitvector_new("", 8);      // vector that builds through concatenation
-                    for (int RLE_index = 0; RLE_index < 64; RLE_index++) {  // iterate through entire 1x64 zigzag-scanned array
-                        // determines whether the coefficient is the first one in the zigzag block, important for encoding.
-                        if (RLE_index == 0) {
-                            first = 1;
-                        }
-                        else {
-                            first = 0;
-                        }
-                        //
-                        level = Y_encoded_array[level_index];
-                        run = Y_encoded_array[run_index];
-                        
-                        if (run == 0 || level == 0) { // accounts for zeros in RLE array, they have no relevant value
-                            break;
-                        }
-                        
-                        temp_coeff_bv = encode_blk_coeff(run, level, first); // encodes each coefficient into its individual BV
-                        bitvector_concat(temp_dest_bv, temp_coeff_bv); 
-                        run_index += 2;
-                        level_index += 2;
-                    }
+                    char* output = concat_char(slice_header, Y_encoded_char_array);
                     
-                    bitvector_concat(b, temp_dest_bv); // concatenate to BITSTREAM
+                    
+                    //bitvector_concat(b, temp_dest_bv); // concatenate to BITSTREAM
                     //bitvector_print(temp_dest_bv);
                 }
 
