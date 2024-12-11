@@ -52,7 +52,7 @@ int main() {
     uint8_t picture_type = 1; // 001 for I-frame (and we only have I-frames)
     uint8_t* bidir_vector;    // ??
     
-    // PICTURE LAYER 2.0 - calculating VBV delay
+    // PICTURE LAYER 2.0 - calculating VBV delay, look at Page 37 of manual, this makes no sense
     uint8_t clock_speed = 1000000000; // set at 1 GHz
     uint8_t bitrate = 1; // ??
     uint8_t vbv_occupancy = 0; // measured before removing picture layer but after removing GOP layer (?????)
@@ -193,10 +193,10 @@ int main() {
         // ref: https://stackoverflow.com/questions/8310749/discrete-cosine-transform-dct-implementation-c
         // Y
         
-        //for (int y = 0; y < images[i]->height; y += 16) { ///////// old code, keep!
-        //    for (int x = 0; x < images[i]->width; x += 16) {
-        for (int x = 0; x < images[i]->width; x += 16) {
-            for (int y = 0; y < images[i]->height; y += 16) {
+        for (int y = 0; y < images[i]->height; y += 16) { 
+            for (int x = 0; x < images[i]->width; x += 16) {
+        //for (int x = 0; x < images[i]->width; x += 16) {
+        //    for (int y = 0; y < images[i]->height; y += 16) {
                 // Dividing Y into 4 8x8 blocks
                 unsigned char Y_blocks[4][8][8]; // Array that stores 4 8x8 blocks
                 double Y_dct_blocks[4][8][8];
@@ -204,12 +204,12 @@ int main() {
                 int Y_zigzag[4][64];
                 int Y_equalized[4][64];
 
-                //for (int block = 0; block < 4; block++) {  ///////// old code, keep!
-                //    int x_start_pos = x + (block % 2) * 8;
-                //    int y_start_pos = y + (block / 2) * 8;
                 for (int block = 0; block < 4; block++) {
-                    int y_start_pos = y + (block % 2) * 8;
-                    int x_start_pos = x + (block / 2) * 8;
+                    int x_start_pos = x + (block % 2) * 8;
+                    int y_start_pos = y + (block / 2) * 8;
+                //for (int block = 0; block < 4; block++) {
+                //    int y_start_pos = y + (block % 2) * 8;
+                //    int x_start_pos = x + (block / 2) * 8;
 
                     extract_8x8_block(Y, images[i]->width, x_start_pos, y_start_pos, Y_blocks[block]); // ENSURE THIS WORKS VERTICALLY FOR SLICES
                     // vertical_pos = vertical_pos + y_start_pos; // update vertical position for header [ ADD THIS LATER ]
