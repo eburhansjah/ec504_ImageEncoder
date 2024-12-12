@@ -78,7 +78,7 @@ BITVECTOR *encode_macblk_address_value(int value) {
     BITVECTOR* b;
     if (value >= 1 && value <= MAX_VALUE + 2) {
         b = bitvector_new(encoding_table[value].binstring, encoding_table[value].bit_len);
-        bitvector_print(b);
+        //bitvector_print(b);
         return b;
     }
     return NULL;

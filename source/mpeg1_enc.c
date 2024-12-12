@@ -137,3 +137,4 @@ char* concat_char(char* array1, char* array2) {
     }
     return output;
 }
+
