@@ -7,7 +7,7 @@
 #define B(name, ...) bitvector_ ## name (__VA_ARGS__)
 #define BV struct bitvector
 
-BV slice_start_code = {"\x00\x00\x01", 24, 24};
+BV slice_start_code = {"\x00\x00\x01", 24, 24, 24};
 
 void mpeg1_slice(uint8_t quant_scale, uint8_t vertical_pos /* <= 175 */, BV* out) {
     B(concat, out, &slice_start_code);

@@ -277,6 +277,7 @@ int main() {
                     
                     char* output = concat_char(slice_header, Y_encoded_char_array);
                     
+                    /*
                     // VLC encoding
                     int level_index = 0; 
                     int run_index = 1;   
@@ -308,6 +309,7 @@ int main() {
                     // bitvector_concat(b, temp_dest_bv); // concatenate to BITSTREAM
                     bitvector_print(temp_dest_bv);
                     //bitvector_print(b);
+                    */
                     
                 }
 
