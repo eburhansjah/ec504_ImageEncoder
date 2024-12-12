@@ -234,6 +234,7 @@ int main() {
             bitvector_toarray(slice_header, slice_output);
             filesize = fwrite(slice_output, sizeof(slice_output), sizeof(slice_output)/sizeof(char), fp);
             
+            
             int address = 1; // macroblock address for header
 
             for (int x = 0; x < images[i]->width; x += 16) { // MACROBLOCK LEVEL
@@ -422,6 +423,18 @@ int main() {
         free(Cr);
         free(Cb_sub);
         free(Cr_sub);
+        
+        // increment time
+        second++;
+        if (second % 60 == 0) {
+            minute++;
+            second = 0;
+        }
+        if (minute % 60 == 0) {
+            hour++;
+            minute = 0;
+            second = 0;
+        }
     }
 
     // Free images
