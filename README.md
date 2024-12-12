@@ -1,4 +1,4 @@
-# ec504_ImageEncoder
+# Overview
 This video encoder was designed as part of our final project for our Advanced Data Structures and Algorithms class (EC504) at Boston University.  It accepts a folder of JPEG images and encodes them into a simplified MPEG-1 file using functions we wrote ourselves.
 
 ## Group Members
@@ -44,6 +44,10 @@ This program was built and tested on the following operating systems:
 
 We will also be integrating this system into an Android application as part of our project.  This project may work on other platforms or with other package versions, but the above configurations are what we developed and tested upon. 
 
+The runnable Android application and instructions on how to get the jar file for command line  is available in this repository:
+https://github.com/Phosphorus15/ec504_AndroidCV/
+
+
 ## How To
 First, clone this repository:
 ```
@@ -61,14 +65,30 @@ If you need a clean compilation, simply call:
 make clean  # remove all targets
 ```
 
-## How it works
+## MPEG-1 encoder and decoder framework
 
-Encoder runtime steps:
-1) Converts RGB images to YCbCr
-2) Subsamples to 4:2:1
-3) Breaks down images into 8x8 macroblocks
-4) Performs a Discrete Cosine Transform (DCT) on them with a Fast Fourier Transform (FFT)
-5) Quantizes the macroblocks
-6) Scans the macroblocks in a zigzag pattern to collapse them to a 1D array
-7) Performs Run Length Encoding (RLE) to compress the sparse matrices
-8) Huffman encoding and table generation **(In-Progress)**
+![mpeg1-encoder-decoder-framework](https://github.com/eburhansjah/ec504_ImageEncoder/blob/main/assests/mpeg1_encoder_decoder.png)
+
+We are implementing **compression algorithms** and play the encoded file with an mpeg-1 player
+
+**Compression steps include:**
+
+1. Input check to ensure all images valid files of the same type and dimensions before converting to raw matrices;
+
+2. Colorspace transform to convert the RGB image matrices to YCbCr colorspace;
+
+3. Subsampling then compresses image from original dimensions to 4:2:0;
+
+4. Breaks down images into 8x8 macroblocks;
+
+5. Discrete Cosine Transform (DCT) on the macroblocks, which we sped up using a Fast Fourier Transform (FFT);
+
+6. Quantization of the macroblocks to reduce the highest-frequency coefficients. The base quantization matrix used is the default intra matrix for MPEG-1. It is scalable according to a quality factor;
+   
+7. Scans the macroblocks in a zigzag pattern to collapse them to a 1D array;
+
+8. Variable Length Encoding (VLC) on the 1D array according to the industry standard (ISO) VLC codes and headers. This framework includes both Run Length Encoding (RLE) and Huffman Encoding.
+
+## MPEG-1 Compliant Datastructure
+
+![mpeg-1-compliant-ds](https://github.com/eburhansjah/ec504_ImageEncoder/blob/main/assests/mpeg1-compliant-ds.png)
