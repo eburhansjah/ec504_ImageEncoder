@@ -224,8 +224,9 @@ int main() {
         // Y
         for (int y = 0; y < images[i]->height; y += 16) { // SLICE LEVEL
         
-            char slice_header[10];
-            //mpeg1_slice(quant_scale, vertical_pos++, slice_header); // adds slice header, updates vertical position
+            //char slice_header[10];
+            BITVECTOR* slice_header = bitvector_new("", 8);
+            mpeg1_slice(quant_scale, vertical_pos++, slice_header); // adds slice header, updates vertical position
 
             for (int x = 0; x < images[i]->width; x += 16) { // MACROBLOCK LEVEL
                 unsigned char Y_blocks[4][8][8]; // Array that stores 4 8x8 blocks
