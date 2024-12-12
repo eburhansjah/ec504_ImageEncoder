@@ -277,9 +277,38 @@ int main() {
                     
                     char* output = concat_char(slice_header, Y_encoded_char_array);
                     
+                    // VLC encoding
+                    int level_index = 0; 
+                    int run_index = 1;   
+                    int run, level, first;
+                    BITVECTOR* temp_coeff_bv = bitvector_new("", 16);       // will hold individual encoded coefficients
+                    BITVECTOR* temp_dest_bv = bitvector_new("", 8);      // vector that builds through concatenation
+                    for (int RLE_index = 0; RLE_index < 64; RLE_index++) {  // iterate through entire 1x64 zigzag-scanned array
+                        // determines whether the coefficient is the first one in the zigzag block, important for encoding.
+                        if (RLE_index == 0) {
+                            first = 1;
+                        }
+                        else {
+                            first = 0;
+                        }
+                        //
+                        level = Y_encoded_array[level_index];
+                        run = Y_encoded_array[run_index];
+                        
+                        if (run == 0 || level == 0) { // accounts for zeros in RLE array, they have no relevant value
+                            break;
+                        }
+                        
+                        temp_coeff_bv = encode_blk_coeff(run, level, first); // encodes each coefficient into its individual BV
+                        bitvector_concat(temp_dest_bv, temp_coeff_bv); 
+                        run_index += 2;
+                        level_index += 2;
+                    }
                     
-                    //bitvector_concat(b, temp_dest_bv); // concatenate to BITSTREAM
-                    //bitvector_print(temp_dest_bv);
+                    // bitvector_concat(b, temp_dest_bv); // concatenate to BITSTREAM
+                    bitvector_print(temp_dest_bv);
+                    //bitvector_print(b);
+                    
                 }
 
                 // Diving Cb and Cr each into 1 8x8 block

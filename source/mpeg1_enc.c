@@ -119,15 +119,6 @@ void mpeg1_picture_header(uint16_t temporal_ref, uint8_t picture_type,
     }
 }
 
-void mpeg1_slice(uint8_t quant_scale, uint8_t vertical_pos /* <= 175 */, uint8_t* out) {
-    *(out++) = 0x00;
-    *(out++) = 0x00;
-    *(out++) = 0x01;
-    *(out++) = vertical_pos; // slice header, cannot be greater than (8*175)
-    *(out) = (quant_scale & 0x1f) << 3; 
-    // special process, slice contain packed macroblocks
-}
-
 void display_u8arr(uint8_t* buf, int32_t size) {
     for(int i = 0; i < size; i ++)
         printf("0x%02x ", buf[i]);

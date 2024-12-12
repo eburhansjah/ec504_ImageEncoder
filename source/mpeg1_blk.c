@@ -22,7 +22,8 @@
 #define MACBLK_TYPE_PRED_CQ "00001"
 #define MACBLK_TYPE_PRED_Q "000001"
 
-void encode_macroblock_header(unsigned address, BV* output) {
+// qscale set to -1 if the block do not use customize scale
+void encode_macroblock_header_i(unsigned address, short qscale , BV* output) {
     while (address > 33) {
         // whenever larger than 33, we should have added a escape
         B(concat, output, encode_macblk_address_value(MACBLK_ESCAPE));
@@ -30,9 +31,43 @@ void encode_macroblock_header(unsigned address, BV* output) {
     }
     B(concat, output, encode_macblk_address_value(address)); // always something remain after padding
 
-    B(print, output);
+    if (qscale > 0) {
+        B(concat, output, bitvector_new(MACBLK_TYPE_INTRA_Q, 2));
+        B(put_byte_off, output, qscale & 0x1f /* only 5 bits */, 6, 3);
+    } else {
+        B(concat, output, bitvector_new(MACBLK_TYPE_INTRA_P, 2));
+    }
+
+    // B(print, output);
 
     // TODO more to add, this is just example
+
+    // I blocks are simple
+}
+
+void encode_macroblock_end(BV* output) {
+    B(put_bit, output, 1);
 }
 
 
+// qscale set to -1 if the block do not use customize scale
+void encode_block_header_i(uint8_t is_luma, BV* output) {
+
+    if (is_luma) {
+        B(concat, output, bitvector_new("100", 3));
+    } else {
+        B(concat, output, bitvector_new("00", 2));
+    }
+
+    // B(print, output);
+
+    // TODO more to add, this is just example
+
+    // I blocks are simple
+}
+
+void encode_block_end(BV* output) {
+    B(concat, output, bitvector_new("10", 2));
+}
+
+#undef B // release the definition to avoid surprises
