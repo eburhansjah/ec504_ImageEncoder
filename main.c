@@ -43,6 +43,9 @@ int main() {
     uint8_t closed = 1;     // keep set to 1 (means there are no motion vectors)
     uint8_t broken = 0;     // keep to 0 during encoding.  Only used for editing, does not apply for us.
     
+    // PACKET HEADER
+    int pts_optional = 0;                   // appears to be unused within packet_header function
+    
     // SLICE HEADER
     uint8_t quant_scale = 1; // [1 to 31] scales reconstruction of DCT coeffs at slice/macroblock layer.  Zero forbidden.
     uint8_t vertical_pos = 0;  // Changes based on the height within the slice, starts at zero and maxes at 175 - DO NOT CHANGE VALUE HERE
@@ -65,15 +68,27 @@ int main() {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Begin program!
     
+    // opening bitstream movie file for writing
+    FILE *fp;
+    fp = fopen("./bitstreams/awesome_movie.mpeg", "wb");
+    size_t filesize; // gets larger as program runs
+    if (fp == NULL) {
+        perror("Error opening mpeg file");
+        return 1;
+    }
+    
     struct vlc_macroblock v;                // initialize empty macroblock
     char file_header[15], sys_header[12], packet_header[7], out[50];                           // initialize empty buffers
-    int pts_optional = 0;                   // appears to be unused within packet_header function
     
     // initializing headers 1 to 3                       num_bytes  info
     mpeg1_file_header(2202035, file_header);          // [15]       { multiplex_rate, buffer }
+    filesize = fwrite(file_header, sizeof(file_header), sizeof(file_header)/sizeof(char), fp);
     mpeg1_sys_header(2202035, 0xe6, sys_header);      // [12]       { no audio, 1 video stream, fixed ending, bound scale to 1024 bytes}
+    filesize = fwrite(sys_header, sizeof(sys_header), sizeof(sys_header)/sizeof(char), fp);
     mpeg1_packet_header(pts_optional, packet_header); // [7]        { useless_variable, buffer }
+    filesize = fwrite(packet_header, sizeof(packet_header), sizeof(packet_header)/sizeof(char), fp);
     // sequence_header and onward are initialized further down after image info is processed
+    
     
     // Willam's test code here, not implemented currently but do not delete (this is for macroblock/block level)
     /*
@@ -172,17 +187,20 @@ int main() {
     uint8_t height = images[0]->height;
     const int num_slices = ceil(width / 8); // MAKE SURE IS NOT GREATER THAN 175
     
-    // finish initializing front headers
-    mpeg1_sequence_header(width, height, aspect_ratio, frame_rate, yby_size, out); // *out may need to be uint8_t instead of char
-    mpeg1_gop(drop_frame, hour, minute, second, num_pic, closed, broken, out); // initialized first here, then every frame_skip number of images
+    // initialize sequence header
+    char* sequence_header[12];
+    mpeg1_sequence_header(width, height, aspect_ratio, frame_rate, yby_size, sequence_header); // *out may need to be uint8_t instead of char
+    filesize = fwrite(sequence_header, sizeof(sequence_header), sizeof(sequence_header)/sizeof(char), fp);
+    
     
 
     for (int i = 0; i < img_count; i++) {
      
         // puts GOP header every frame_skip number of images
         if ( i % frame_skip == 0) {
-            char gop_header[8]; // re-initialize for every header, necessary because time changes header content
-            mpeg1_gop(drop_frame, hour, minute, second, num_pic, closed, broken, gop_header); // if frame_skip == 1, this header is used every frame
+            char* gop_header[8];
+            mpeg1_gop(drop_frame, hour, minute, second, num_pic, closed, broken, gop_header); // initialized first here, then every frame_skip number of images
+            filesize = fwrite(gop_header, sizeof(gop_header), sizeof(gop_header)/sizeof(char), fp);
         }
         
         // Converting images from RGB to YCbCr and saving bitstreams
@@ -352,7 +370,8 @@ int main() {
         stbi_image_free(images[i]->data);
         free(images[i]);
     }
-
+    
+    fclose(fp);
     printf("Image processing finished.\n");
 
     return 0;
