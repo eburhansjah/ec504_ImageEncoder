@@ -214,9 +214,11 @@ int main() {
         // reset vertical position within slice for every image
         vertical_pos = 0; // necessary for slice headers
 
+        // PICTURE HEADER
         int quality_factor = 12; // factor to scale Q MATIX for quantization
         char picture_header[9];
-        mpeg1_picture_header(temporal_ref, picture_type, vbv_delay, bidir_vector, out);
+        mpeg1_picture_header(temporal_ref, picture_type, vbv_delay, bidir_vector, picture_header);
+        filesize = fwrite(picture_header, sizeof(picture_header), sizeof(picture_header)/sizeof(char), fp);
         
         // Extracting macroblocks and applying DCT over them
         // (4 for Y of 8x8 blocks, one Cb of 8x8 block, and one Cr of 8x8 block)
@@ -224,9 +226,15 @@ int main() {
         // Y
         for (int y = 0; y < images[i]->height; y += 16) { // SLICE LEVEL
         
-            //char slice_header[10];
+            // SLICE HEADER
+            BITVECTOR* b = bitvector_new("", 8);
             BITVECTOR* slice_header = bitvector_new("", 8);
             mpeg1_slice(quant_scale, vertical_pos++, slice_header); // adds slice header, updates vertical position
+            char* slice_output[sizeof(slice_header)];
+            bitvector_toarray(slice_header, slice_output);
+            filesize = fwrite(slice_output, sizeof(slice_output), sizeof(slice_output)/sizeof(char), fp);
+            
+            int address = 1; // macroblock address for header
 
             for (int x = 0; x < images[i]->width; x += 16) { // MACROBLOCK LEVEL
                 unsigned char Y_blocks[4][8][8]; // Array that stores 4 8x8 blocks
@@ -234,12 +242,24 @@ int main() {
                 int Y_quantized[4][8][8];
                 int Y_zigzag[4][64];
                 int Y_equalized[4][64];
+                
+                // MACROBLOCK HEADER HERE
+                BITVECTOR* macroblock_header = bitvector_new("", 8);
+                encode_macroblock_header_i(address++, quant_scale , macroblock_header);
+                char* macroblock_output[sizeof(macroblock_header)];
+                bitvector_toarray(macroblock_header, macroblock_output);
+                filesize = fwrite(macroblock_output, sizeof(macroblock_output), sizeof(macroblock_output)/sizeof(char), fp);
 
                 for (int block = 0; block < 4; block++) { // BLOCK LEVEL
                 
-                    // macroblock and block header stuff
-                    // add here
-                    
+                    // BLOCK HEADER HERE
+                    uint8_t is_luma = 1; // 1 for Y channels, 0 for others
+                    BITVECTOR* block_header = bitvector_new("", 8);
+                    encode_block_header_i(is_luma, block_header);
+                    char* block_output[sizeof(block_header)];
+                    bitvector_toarray(block_header, block_output);
+                    filesize = fwrite(block_output, sizeof(block_output), sizeof(block_output)/sizeof(char), fp);
+                
                     // position within slice
                     int x_start_pos = x + (block % 2) * 8;
                     int y_start_pos = y + (block / 2) * 8;
@@ -293,8 +313,7 @@ int main() {
                     VLC_encode(Y_encoded_array, temp_bv);                             // VLC encode
                     char Y_encoded_char_array[temp_bv->cap >> 3];
                     int Y_length = bitvector_toarray(temp_bv, Y_encoded_char_array);  // to char
-                    
-                    char* output = concat_char(slice_header, Y_encoded_char_array);
+                    filesize = fwrite(Y_encoded_char_array, sizeof(Y_encoded_char_array), sizeof(Y_encoded_char_array)/sizeof(char), fp);
                     
                 }
 
