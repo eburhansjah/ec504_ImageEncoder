@@ -4,6 +4,8 @@
 #define GUARD_BITVECTOR 1
 #define BITVECTOR struct bitvector
 
+#include <stdio.h>
+
 BITVECTOR {
     char* value;
     long long int bits;
@@ -34,5 +36,7 @@ int bitvector_toarray(BITVECTOR* bv, char* output);
 BITVECTOR* bitvector_clone(BITVECTOR* bv);
 
 void bitvector_print(BITVECTOR* bv);
+
+int bitvector_fwrite(BITVECTOR* bv, FILE* file);
 
 #endif

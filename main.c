@@ -78,7 +78,7 @@ int main() {
     }
     
     struct vlc_macroblock v;                // initialize empty macroblock
-    char file_header[12], sys_header[15], packet_header[7], out[50];                           // initialize empty buffers
+    char file_header[12], sys_header[15], packet_header[16], out[50];                           // initialize empty buffers
     
     // initializing headers 1 to 3                       num_bytes  info
     mpeg1_file_header(2202035, file_header);          // [15]       { multiplex_rate, buffer }
@@ -86,7 +86,7 @@ int main() {
     mpeg1_sys_header(2202035, 0xe6, sys_header);      // [12]       { no audio, 1 video stream, fixed ending, bound scale to 1024 bytes}
     filesize = fwrite(sys_header, sizeof(char), 15, fp);
     mpeg1_packet_header(pts_optional, packet_header); // [7]        { useless_variable, buffer }
-    filesize = fwrite(packet_header, sizeof(char), 7, fp);
+    filesize = fwrite(packet_header, sizeof(char), 16, fp);
     // sequence_header and onward are initialized further down after image info is processed
     
     
@@ -215,8 +215,8 @@ int main() {
         // PICTURE HEADER
         int quality_factor = 12; // factor to scale Q MATIX for quantization
         char picture_header[9];
-        mpeg1_picture_header(temporal_ref, picture_type, vbv_delay, bidir_vector, picture_header);
-        filesize = fwrite(picture_header, sizeof(char), 9, fp);
+        mpeg1_picture_header(temporal_ref, picture_type, /*vbv_delay*/ 0xffff, bidir_vector, picture_header);
+        filesize = fwrite(picture_header, sizeof(char), 8 /* 9 for non-I frame*/, fp);
         
         // Extracting macroblocks and applying DCT over them
         // (4 for Y of 8x8 blocks, one Cb of 8x8 block, and one Cr of 8x8 block)
@@ -228,9 +228,10 @@ int main() {
             BITVECTOR* b = bitvector_new("", 8);
             BITVECTOR* slice_header = bitvector_new("", 8);
             mpeg1_slice(quant_scale, vertical_pos++, slice_header); // adds slice header, updates vertical position
-            char* slice_output[8];
-            bitvector_toarray(slice_header, slice_output);
-            filesize = fwrite(slice_output, sizeof(char), 8, fp);
+            // NOTE: The slice header should be added with the following macroblocks before getting emitted
+            // char* slice_output[8];
+            // bitvector_toarray(slice_header, slice_output);
+            // filesize = fwrite(slice_output, sizeof(char), 5, fp);
             
             
             int address = 1; // macroblock address for header
@@ -244,20 +245,21 @@ int main() {
                 
                 // MACROBLOCK HEADER HERE
                 BITVECTOR* macroblock_header = bitvector_new("", 8);
-                encode_macroblock_header_i(address++, quant_scale , macroblock_header);
+                encode_macroblock_header_i(address++, quant_scale , slice_header);
                 char* macroblock_output[8];
-                bitvector_toarray(macroblock_header, macroblock_output);
-                filesize = fwrite(macroblock_output, sizeof(char), 8, fp);
+                // NOTE: The macroblock header should be added with the following blocks before getting emitted
+                // bitvector_toarray(macroblock_header, macroblock_output);
+                // filesize = fwrite(macroblock_output, sizeof(char), 8, fp);
 
                 for (int block = 0; block < 4; block++) { // BLOCK LEVEL
                 
                     // BLOCK HEADER HERE
                     uint8_t is_luma = 1; // 1 for Y channels, 0 for others
                     BITVECTOR* block_header = bitvector_new("", 8);
-                    encode_block_header_i(is_luma, block_header);
+                    encode_block_header_i(is_luma, slice_header);
                     char* block_output[8];
-                    bitvector_toarray(block_header, block_output);
-                    filesize = fwrite(block_output, sizeof(char), 8, fp);
+                    // bitvector_toarray(block_header, block_output);
+                    // filesize = fwrite(block_output, sizeof(char), 8, fp);
                 
                     // position within slice
                     int x_start_pos = x + (block % 2) * 8;
@@ -309,15 +311,15 @@ int main() {
                     
                     // encodes Y_array in VLC code and then converts it to a char array
                     BITVECTOR* temp_bv = bitvector_new("", 8);
-                    VLC_encode(Y_encoded_array, temp_bv);                             // VLC encode
+                    VLC_encode(Y_encoded_array, slice_header);                             // VLC encode
                     char Y_encoded_char_array[temp_bv->cap >> 3];
-                    int Y_length = bitvector_toarray(temp_bv, Y_encoded_char_array);  // to char
-                    filesize = fwrite(Y_encoded_char_array, sizeof(char), sizeof(Y_encoded_char_array), fp);
+                    // int Y_length = bitvector_toarray(temp_bv, Y_encoded_char_array);  // to char
+                    // filesize = fwrite(Y_encoded_char_array, sizeof(char), sizeof(Y_encoded_char_array), fp);
                     
                     // BLOCK END HEADER
                     BITVECTOR* block_end_header = bitvector_new("", 8);
-                    encode_block_end(block_end_header);
-                    filesize = fwrite(block_end_header, sizeof(char), sizeof(block_end_header), fp);
+                    encode_block_end(slice_header);
+                    // filesize = fwrite(block_end_header, sizeof(char), sizeof(block_end_header), fp);
                 }
 
                 // Diving Cb and Cr each into 1 8x8 block
@@ -373,33 +375,33 @@ int main() {
                 uint8_t is_luma = 0; // designates these are no longer Y blocks
                 
                 // encodes Cb_array in VLC code and then converts it to a char array
-                BITVECTOR* temp_bv2 = bitvector_new("", 8);
-                VLC_encode(Cb_encoded_array, temp_bv2);                             // VLC encode
-                char Cb_encoded_char_array[temp_bv2->cap >> 3];
-                int Cb_length = bitvector_toarray(temp_bv2, Cb_encoded_char_array);  // to char
-                filesize = fwrite(Cb_encoded_char_array, sizeof(char), sizeof(Cb_encoded_char_array), fp);
+                // BITVECTOR* temp_bv2 = bitvector_new("", 8);
+                VLC_encode(Cb_encoded_array, slice_header);                             // VLC encode
+                // char Cb_encoded_char_array[temp_bv2->cap >> 3];
+                // int Cb_length = bitvector_toarray(temp_bv2, Cb_encoded_char_array);  // to char
+                // filesize = fwrite(Cb_encoded_char_array, sizeof(char), sizeof(Cb_encoded_char_array), fp);
                 
                 // Cb BLOCK-END HEADER
                 BITVECTOR* Cb_block_end_header = bitvector_new("", 8);
-                encode_block_end(Cb_block_end_header);
-                filesize = fwrite(Cb_block_end_header, sizeof(char), sizeof(Cb_block_end_header), fp);
+                encode_block_end(slice_header);
+                // filesize = fwrite(Cb_block_end_header, sizeof(char), sizeof(Cb_block_end_header), fp);
                 
                 // encodes Cr_array in VLC code and then converts it to a char array
-                BITVECTOR* temp_bv3 = bitvector_new("", 8);
-                VLC_encode(Cr_encoded_array, temp_bv3);                             // VLC encode
-                char Cr_encoded_char_array[temp_bv3->cap >> 3];
-                int Cr_length = bitvector_toarray(temp_bv3, Cr_encoded_char_array);  // to char
-                filesize = fwrite(Cr_encoded_char_array, sizeof(char), sizeof(Cr_encoded_char_array), fp);
+                // BITVECTOR* temp_bv3 = bitvector_new("", 8);
+                VLC_encode(Cr_encoded_array, slice_header);                             // VLC encode
+                // char Cr_encoded_char_array[temp_bv3->cap >> 3];
+                // int Cr_length = bitvector_toarray(temp_bv3, Cr_encoded_char_array);  // to char
+                // filesize = fwrite(Cr_encoded_char_array, sizeof(char), sizeof(Cr_encoded_char_array), fp);
                 
                 // BLOCK END HEADER
                 BITVECTOR* Cr_block_end_header = bitvector_new("", 8);
-                encode_block_end(Cr_block_end_header);
-                filesize = fwrite(Cr_block_end_header, sizeof(char), sizeof(Cr_block_end_header), fp);
+                encode_block_end(slice_header);
+                // filesize = fwrite(Cr_block_end_header, sizeof(char), sizeof(Cr_block_end_header), fp);
                 
                 // MACROBLOCK END HEADER
                 BITVECTOR* macroblock_end_header = bitvector_new("", 8);
-                encode_block_end(macroblock_end_header);
-                filesize = fwrite(macroblock_end_header, sizeof(char), sizeof(macroblock_end_header), fp);
+                encode_block_end(slice_header);
+                // filesize = fwrite(macroblock_end_header, sizeof(char), sizeof(macroblock_end_header), fp);
                 
                 //free(Y_dct_blocks);
                 //free(Y_quantized);
@@ -410,6 +412,7 @@ int main() {
                 //free(Cb_dct);
                 //free(Cr_dct);
             }
+            filesize = bitvector_fwrite(slice_header, fp);
         }
         
         // SEQUENCE END HEADER

@@ -53,9 +53,19 @@ void mpeg1_packet_header(uint32_t pts_optinal, uint8_t *out) {
     uint8_t* length_writer = out;
     out += 2;
 
-    *(out++) = 0x0f; // when pts is not applicable
-    length_writer[1] = 0x00;
-    length_writer[1] = 0x01;
+    *(out++) = 0x31; // when pts is not applicable
+    // Dummy 
+    *(out++) = 0x00;
+    *(out++) = 0x03;
+    *(out++) = 0x77;
+    *(out++) = 0x07;
+    *(out++) = 0x11;
+    *(out++) = 0x00;
+    *(out++) = 0x03;
+    *(out++) = 0x5f;
+    *(out++) = 0x91;
+    length_writer[0] = 0x07;
+    length_writer[1] = 0xdf;
 
 }
 

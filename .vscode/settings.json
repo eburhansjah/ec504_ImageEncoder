@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "bit_vector.h": "c",
+        "mpeg1.h": "c",
+        "stdlib.h": "c"
+    }
+}

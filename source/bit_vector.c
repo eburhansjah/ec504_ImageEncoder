@@ -1,6 +1,7 @@
 #include "bit_vector.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 
 void bitvector_init(BITVECTOR* bv, long long int size) {
@@ -128,6 +129,18 @@ int bitvector_toarray(BITVECTOR* bv, char* output) {
         bnum = bv->cap & 0x7;
         output[total_bytes] = bv->value[total_bytes];
         output[total_bytes++] &= ~((1 << bnum) - 1);
+    }
+    return total_bytes;
+}
+
+int bitvector_fwrite(BITVECTOR* bv, FILE* file) {
+    int total_bytes = bv->cap >> 3;
+    int bnum = 0;
+    fwrite(bv->value, sizeof(char), total_bytes, file);
+    if (bv->cap & 0x7) {
+        bnum = bv->cap & 0x7;
+        char wbyte = bv->value[total_bytes] & (~((1 << bnum) - 1));
+        fwrite(bv->value, sizeof(char), 1, file);
     }
     return total_bytes;
 }

@@ -1,5 +1,10 @@
 #include <stdint.h>
 #include "bit_vector.h"
+#include <stdio.h>
+
+#ifndef MPEG1_VG
+#define MPEG1_VG 1
+
 
 /*
 struct vlc_block {
@@ -41,3 +46,5 @@ void display_u8arr(uint8_t* buf, int32_t size);
 BITVECTOR *encode_macblk_address_value(int value);
 
 BITVECTOR *encode_blk_coeff(int run, int level, int first);
+
+#endif
