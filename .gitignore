@@ -4,3 +4,4 @@ encoder
 .o
 .swp
 .c.swp
+*.o
