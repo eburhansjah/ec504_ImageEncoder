@@ -315,6 +315,10 @@ int main() {
                     int Y_length = bitvector_toarray(temp_bv, Y_encoded_char_array);  // to char
                     filesize = fwrite(Y_encoded_char_array, sizeof(Y_encoded_char_array), sizeof(Y_encoded_char_array)/sizeof(char), fp);
                     
+                    // BLOCK END HEADER
+                    BITVECTOR* block_end_header = bitvector_new("", 8);
+                    encode_block_end(block_end_header);
+                    filesize = fwrite(block_end_header, sizeof(block_end_header), sizeof(block_end_header)/sizeof(char), fp);
                 }
 
                 // Diving Cb and Cr each into 1 8x8 block
@@ -366,9 +370,44 @@ int main() {
                 int Cb_encoded_array[128], Cr_encoded_array[128];
                 int *Cb_RLE = run_length_encode(Cb_zigzag, Cb_encoded_array);
                 int *Cr_RLE = run_length_encode(Cr_zigzag, Cr_encoded_array);
+                
+                uint8_t is_luma = 0; // designates these are no longer Y blocks
+                
+                // encodes Cb_array in VLC code and then converts it to a char array
+                BITVECTOR* temp_bv2 = bitvector_new("", 8);
+                VLC_encode(Cb_encoded_array, temp_bv2);                             // VLC encode
+                char Cb_encoded_char_array[temp_bv2->cap >> 3];
+                int Cb_length = bitvector_toarray(temp_bv2, Cb_encoded_char_array);  // to char
+                filesize = fwrite(Cb_encoded_char_array, sizeof(Cb_encoded_char_array), sizeof(Cb_encoded_char_array)/sizeof(char), fp);
+                
+                // Cb BLOCK-END HEADER
+                BITVECTOR* Cb_block_end_header = bitvector_new("", 8);
+                encode_block_end(Cb_block_end_header);
+                filesize = fwrite(Cb_block_end_header, sizeof(Cb_block_end_header), sizeof(Cb_block_end_header)/sizeof(char), fp);
+                
+                // encodes Cr_array in VLC code and then converts it to a char array
+                BITVECTOR* temp_bv3 = bitvector_new("", 8);
+                VLC_encode(Cr_encoded_array, temp_bv3);                             // VLC encode
+                char Cr_encoded_char_array[temp_bv3->cap >> 3];
+                int Cr_length = bitvector_toarray(temp_bv3, Cr_encoded_char_array);  // to char
+                filesize = fwrite(Cr_encoded_char_array, sizeof(Cr_encoded_char_array), sizeof(Cr_encoded_char_array)/sizeof(char), fp);
+                
+                // BLOCK END HEADER
+                BITVECTOR* Cr_block_end_header = bitvector_new("", 8);
+                encode_block_end(Cr_block_end_header);
+                filesize = fwrite(Cr_block_end_header, sizeof(Cr_block_end_header), sizeof(Cr_block_end_header)/sizeof(char), fp);
+                
+                // MACROBLOCK END HEADER
+                BITVECTOR* macroblock_end_header = bitvector_new("", 8);
+                encode_block_end(macroblock_end_header);
+                filesize = fwrite(macroblock_end_header, sizeof(macroblock_end_header), sizeof(macroblock_end_header)/sizeof(char), fp);
             }
         }
         
+        // SEQUENCE END HEADER
+        uint8_t sequence_end_header[4];
+        mpeg1_sequence_end(sequence_end_header);
+        filesize = fwrite(sequence_end_header, sizeof(sequence_end_header), sizeof(sequence_end_header)/sizeof(char), fp);
 
         // Creating unique bitstream file names
         char bitstream_filename[256];
