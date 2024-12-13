@@ -189,6 +189,7 @@ int main() {
     char* sequence_header[12];
     size_t seek_location = 0;
     size_t forward_value = 0;
+    BITVECTOR ZEROES_25 = {"\0\0\0\0", 23, 23 , 23};
     
     for (int i = 0; i < img_count; i++) {
         unsigned total_written = 0;
@@ -231,11 +232,11 @@ int main() {
         // (4 for Y of 8x8 blocks, one Cb of 8x8 block, and one Cr of 8x8 block)
         // ref: https://stackoverflow.com/questions/8310749/discrete-cosine-transform-dct-implementation-c
         // Y
+        BITVECTOR* slice_header = bitvector_new("", 8);
         for (int y = 0; y < /*images[i]->height*/ 144; y += 16) { // SLICE LEVEL
         
             // SLICE HEADER
             BITVECTOR* b = bitvector_new("", 8);
-            BITVECTOR* slice_header = bitvector_new("", 8);
             mpeg1_slice(quant_scale, vertical_pos++, slice_header); // adds slice header, updates vertical position
             // NOTE: The slice header should be added with the following macroblocks before getting emitted
             // char* slice_output[8];
@@ -408,8 +409,8 @@ int main() {
                 // filesize = fwrite(Cr_block_end_header, sizeof(char), sizeof(Cr_block_end_header), fp);
                 
                 // MACROBLOCK END HEADER
-                BITVECTOR* macroblock_end_header = bitvector_new("", 8);
-                encode_block_end(slice_header);
+                // BITVECTOR* macroblock_end_header = bitvector_new("", 8);
+                // encode_block_end(slice_header);
                 // filesize = fwrite(macroblock_end_header, sizeof(char), sizeof(macroblock_end_header), fp);
                 
                 //free(Y_dct_blocks);
@@ -421,9 +422,11 @@ int main() {
                 //free(Cb_dct);
                 //free(Cr_dct);
             }
-            filesize = bitvector_fwrite(slice_header, fp);
-            total_written += filesize;
+            bitvector_concat(slice_header, &ZEROES_25);
         }
+        filesize = bitvector_fwrite(slice_header, fp);
+        total_written += filesize;
+        free(slice_header->value);
         unsigned short fwd = ftell(fp) - seek_location;
         printf("Seeking to write back to position %d from %d %x\n", seek_location, seek_location + fwd, fwd);
         fseek(fp, seek_location, SEEK_SET);
