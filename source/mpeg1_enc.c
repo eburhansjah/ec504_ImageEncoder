@@ -44,7 +44,7 @@ void mpeg1_sys_header(uint32_t multiplex_rate, uint8_t packet_num, uint8_t out[1
 }
 
 // 1
-void mpeg1_packet_header(uint32_t pts_optinal, uint8_t *out) {
+void mpeg1_packet_header(uint32_t dts_optinal, uint8_t *out) {
     *(out++) = 0x00;
     *(out++) = 0x00;
     *(out++) = 0x01;
@@ -53,20 +53,27 @@ void mpeg1_packet_header(uint32_t pts_optinal, uint8_t *out) {
     uint8_t* length_writer = out;
     out += 2;
 
-    *(out++) = 0x31; // when pts is not applicable
+    if (dts_optinal) {
+        dts_optinal *= 1; // 90KHz clock cycle
+        dts_optinal += 0xbeef;
+        *(out++) = 0x31 | ((dts_optinal & 0xe0000000) >> 28); // when pts is not applicable
     // Dummy 
-    *(out++) = 0x00;
-    *(out++) = 0x03;
-    *(out++) = 0x77;
-    *(out++) = 0x07;
-    *(out++) = 0x11;
-    *(out++) = 0x00;
-    *(out++) = 0x03;
-    *(out++) = 0x5f;
-    *(out++) = 0x91;
-    length_writer[0] = 0x07;
-    length_writer[1] = 0xdf;
-
+        *(out++) = ((dts_optinal & 0x1fe00000) >> 21);
+        *(out++) = 0x01 | ((dts_optinal & 0x001fc000) >> 13);
+        *(out++) = ((dts_optinal & 0x00003fc0) >> 6);
+        *(out++) = 0x01 | ((dts_optinal & 0x0000003f) << 1);
+        // pts starts here
+        dts_optinal -= 0xbeef;
+        *(out++) = 0x11 | ((dts_optinal & 0xe0000000) >> 28);
+        *(out++) = ((dts_optinal & 0x1fe00000) >> 21);
+        *(out++) = 0x01 | ((dts_optinal & 0x001fc000) >> 13);
+        *(out++) = ((dts_optinal & 0x00003fc0) >> 6);
+        *(out++) = 0x01 | ((dts_optinal & 0x0000003f) << 1);
+    } else {
+        *(out++) = 0x3f; // when pts is not applicable
+    }
+    length_writer[0] = 0x00;
+    length_writer[1] = 0x00;
 }
 
 // A: 1 F: 4 YBY : 3

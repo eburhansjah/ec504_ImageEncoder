@@ -85,8 +85,6 @@ int main() {
     filesize = fwrite(file_header, sizeof(char), 12, fp);
     mpeg1_sys_header(2202035, 0xe6, sys_header);      // [12]       { no audio, 1 video stream, fixed ending, bound scale to 1024 bytes}
     filesize = fwrite(sys_header, sizeof(char), 15, fp);
-    mpeg1_packet_header(pts_optional, packet_header); // [7]        { useless_variable, buffer }
-    filesize = fwrite(packet_header, sizeof(char), 16, fp);
     // sequence_header and onward are initialized further down after image info is processed
     
     
@@ -189,16 +187,26 @@ int main() {
     
     // initialize sequence header
     char* sequence_header[12];
-    mpeg1_sequence_header(width, height, aspect_ratio, frame_rate, yby_size, sequence_header); // *out may need to be uint8_t instead of char
-    filesize = fwrite(sequence_header, sizeof(char), 12, fp);
+    size_t seek_location = 0;
+    size_t forward_value = 0;
     
     for (int i = 0; i < img_count; i++) {
+        unsigned total_written = 0;
+        seek_location = ftell(fp) + 4;
+        // For now we create packet for each image, don't really want to but we have
+        mpeg1_packet_header(1 + second + minute * 60 + hour * 60 * 60, packet_header); // [7]        { clock rate timestamp, buffer }
+        filesize = fwrite(packet_header, sizeof(char), 16, fp);
+
+        mpeg1_sequence_header(width, height, aspect_ratio, frame_rate, yby_size, sequence_header); // *out may need to be uint8_t instead of char
+    filesize = fwrite(sequence_header, sizeof(char), 12, fp);
+        total_written += 12;
      
         // puts GOP header every frame_skip number of images
         //if ( i % frame_skip == 0) {
             char* gop_header[8];
             mpeg1_gop(drop_frame, hour, minute, second, num_pic, closed, broken, gop_header); // initialized first here, then every frame_skip number of images
             filesize = fwrite(gop_header, sizeof(char), 8, fp);
+            total_written += 8;
         //}
         
         // Converting images from RGB to YCbCr and saving bitstreams
@@ -217,12 +225,13 @@ int main() {
         char picture_header[9];
         mpeg1_picture_header(temporal_ref, picture_type, /*vbv_delay*/ 0xffff, bidir_vector, picture_header);
         filesize = fwrite(picture_header, sizeof(char), 8 /* 9 for non-I frame*/, fp);
+        total_written += 8;
         
         // Extracting macroblocks and applying DCT over them
         // (4 for Y of 8x8 blocks, one Cb of 8x8 block, and one Cr of 8x8 block)
         // ref: https://stackoverflow.com/questions/8310749/discrete-cosine-transform-dct-implementation-c
         // Y
-        for (int y = 0; y < images[i]->height; y += 16) { // SLICE LEVEL
+        for (int y = 0; y < /*images[i]->height*/ 144; y += 16) { // SLICE LEVEL
         
             // SLICE HEADER
             BITVECTOR* b = bitvector_new("", 8);
@@ -236,7 +245,7 @@ int main() {
             
             int address = 1; // macroblock address for header
 
-            for (int x = 0; x < images[i]->width; x += 16) { // MACROBLOCK LEVEL
+            for (int x = 0; x < /*images[i]->width*/ 88; x += 16) { // MACROBLOCK LEVEL
                 unsigned char Y_blocks[4][8][8]; // Array that stores 4 8x8 blocks
                 double Y_dct_blocks[4][8][8];
                 int Y_quantized[4][8][8];
@@ -413,8 +422,15 @@ int main() {
                 //free(Cr_dct);
             }
             filesize = bitvector_fwrite(slice_header, fp);
+            total_written += filesize;
         }
-        
+        unsigned short fwd = ftell(fp) - seek_location;
+        printf("Seeking to write back to position %d from %d %x\n", seek_location, seek_location + fwd, fwd);
+        fseek(fp, seek_location, SEEK_SET);
+        fwd -= 4;
+        fputc((fwd & 0xff00) >> 8, fp);
+        fputc((fwd & 0xff), fp);
+        fseek(fp, 0, SEEK_END);
         // SEQUENCE END HEADER
         uint8_t sequence_end_header[4];
         mpeg1_sequence_end(sequence_end_header);

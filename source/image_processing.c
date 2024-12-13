@@ -387,12 +387,12 @@ void equalize_coefficients(int zigzag_array[64], int equalized_array[64]) {
     int coeff;
     for (int i = 0; i < N; i++){
         coeff = zigzag_array[i];
-        if (coeff >= 0) {
-            coeff++;
-        }
-        else {
-            coeff--;
-        }
+        // if (coeff >= 0) {
+        //     coeff++;
+        // }
+        // else {
+        //     coeff--;
+        // }
         equalized_array[i] = coeff;
     }
 }
@@ -700,7 +700,7 @@ int* run_length_encode(int zigzag_block[64], int encoded_array[128]) {
     
     int encoded_int = 0;
     int index = 0;
-    int count = 1;
+    int count = 0;
     
     encoded_int = zigzag_block[0];
     
@@ -709,21 +709,23 @@ int* run_length_encode(int zigzag_block[64], int encoded_array[128]) {
         //printf("encoded int: %d \n", zigzag_block[i]);
         //encoded_array[index++] = zigzag_block[i];
         
-        if (zigzag_block[i] != zigzag_block[i+1] && zigzag_block[i-1] != zigzag_block[i+1]) {
+        if (/*zigzag_block[i] != zigzag_block[i+1] && zigzag_block[i-1] != zigzag_block[i+1]*/ zigzag_block[i] != 0) {
             encoded_array[index++] = zigzag_block[i];
             encoded_array[index++] = count;
+            count = 0;
         }
         else {
-            encoded_array[index++] = zigzag_block[i];
-            while (zigzag_block[i] == zigzag_block[i+1] && i + 1 < 64) {
-                count++;
-                i++;
-                if (count == 33) {  // accounts for maximum run of 33 in VLC coding
-                    break;
-                }
-            }
-            encoded_array[index++] = count;
-            count = 1;
+            count ++;
+            // encoded_array[index++] = zigzag_block[i];
+            // while (zigzag_block[i] == zigzag_block[i+1] && i + 1 < 64) {
+            //     count++;
+            //     i++;
+            //     if (count == 33) {  // accounts for maximum run of 33 in VLC coding
+            //         break;
+            //     }
+            // }
+            // encoded_array[index++] = count;
+            // count = 1;
         }
         
     }
