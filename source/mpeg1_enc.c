@@ -54,7 +54,7 @@ void mpeg1_packet_header(uint32_t dts_optinal, uint8_t *out) {
     out += 2;
 
     if (dts_optinal) {
-        dts_optinal *= 1; // 90KHz clock cycle
+        dts_optinal *= 1.2; // 90KHz clock cycle
         dts_optinal += 0xbeef;
         *(out++) = 0x31 | ((dts_optinal & 0xe0000000) >> 28); // when pts is not applicable
     // Dummy 

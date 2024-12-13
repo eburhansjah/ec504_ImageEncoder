@@ -68,7 +68,7 @@ void encode_block_header_i(unsigned char is_luma, int coeff[128], BV* output) {
 
     printf("Coeff starting value %d %d %d\n", coeff[0], coeff[1], is_luma);
 
-    bitvector_print(output);
+    // bitvector_print(output);
 
     if (coeff[0] != 0 && coeff[1] == 0) {
         int coe = coeff[0];
