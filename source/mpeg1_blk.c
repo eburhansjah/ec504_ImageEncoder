@@ -7,14 +7,14 @@
 #define B(name, ...) bitvector_ ## name (__VA_ARGS__)
 #define BV struct bitvector
 
-BV slice_start_code = {"\x00\x00\x01", 24, 24, 24};
+BV slice_start_code = {"\x00\x00\x01\x01", 32, 32, 32};
 
 void mpeg1_slice(uint8_t quant_scale, uint8_t vertical_pos /* <= 175 */, BV* out) {
     B(concat, out, &slice_start_code);
-    B(put_byte_ent, out, vertical_pos + 1); // vertical pos starts with 1
+    // B(put_byte_ent, out, vertical_pos + 1); // vertical pos starts with 1
     B(put_byte_off, out, quant_scale & 0x1f /* only 5 bits */, 5, 3);
     B(put_bit, out, 0); // fixed
-    // B(print, out);
+    B(print, out);
     // exit(0);
     // The following should all be macroblocks
 }
@@ -43,7 +43,7 @@ void encode_macroblock_header_i(unsigned address, short quant_scale , BV* output
     }
     B(concat, output, encode_macblk_address_value(address)); // always something remain after padding
 
-    if (quant_scale > 0) {
+    if (0) {
         B(concat, output, bitvector_new(MACBLK_TYPE_INTRA_Q, 2));
         B(put_byte_off, output, quant_scale & 0x1f /* only 5 bits */, 5, 3);
     } else {

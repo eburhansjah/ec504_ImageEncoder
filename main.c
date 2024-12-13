@@ -222,7 +222,7 @@ int main() {
         vertical_pos = 0; // necessary for slice headers
 
         // PICTURE HEADER
-        int quality_factor = 12; // factor to scale Q MATIX for quantization
+        int quality_factor = 90; // factor to scale Q MATIX for quantization
         char picture_header[9];
         mpeg1_picture_header(temporal_ref, picture_type, /*vbv_delay*/ 0xffff, bidir_vector, picture_header);
         filesize = fwrite(picture_header, sizeof(char), 8 /* 9 for non-I frame*/, fp);
@@ -234,7 +234,7 @@ int main() {
         // Y
         BITVECTOR* slice_header = bitvector_new("", 8);
         for (int y = 0; y < /*images[i]->height*/ 144; y += 16) { // SLICE LEVEL
-        
+                int address = 1; // macroblock address for header
             // SLICE HEADER
             BITVECTOR* b = bitvector_new("", 8);
             mpeg1_slice(quant_scale, vertical_pos++, slice_header); // adds slice header, updates vertical position
@@ -242,11 +242,8 @@ int main() {
             // char* slice_output[8];
             // bitvector_toarray(slice_header, slice_output);
             // filesize = fwrite(slice_output, sizeof(char), 5, fp);
-            
-            
-            int address = 1; // macroblock address for header
 
-            for (int x = 0; x < /*images[i]->width*/ 88; x += 16) { // MACROBLOCK LEVEL
+            for (int x = 0; x < /*images[i]->width*/ 96; x += 16) { // MACROBLOCK LEVEL
                 unsigned char Y_blocks[4][8][8]; // Array that stores 4 8x8 blocks
                 double Y_dct_blocks[4][8][8];
                 int Y_quantized[4][8][8];
@@ -255,7 +252,7 @@ int main() {
                 
                 // MACROBLOCK HEADER HERE
                 BITVECTOR* macroblock_header = bitvector_new("", 8);
-                encode_macroblock_header_i(address++, quant_scale , slice_header);
+                encode_macroblock_header_i(1, quant_scale , slice_header);
                 char* macroblock_output[8];
                 // NOTE: The macroblock header should be added with the following blocks before getting emitted
                 // bitvector_toarray(macroblock_header, macroblock_output);
@@ -278,46 +275,52 @@ int main() {
                     extract_8x8_block(Y, images[i]->width, x_start_pos, y_start_pos, Y_blocks[block]);
                     fast_DCT(Y_blocks[block], Y_dct_blocks[block]);
                     
-                    /* // These coefficients are in the 0-400 range before quantization
+                     // These coefficients are in the 0-400 range before quantization
                     // Printing transformed DCT coeffs. 
-                    printf("Fast DCT on Y Block:\n");
-                    for (int i = 0; i < 8; i++) {
-                        for (int j = 0; j < 8; j++) {
-                            printf("%8.2f ", Y_dct_blocks[0][i][j]);
-                        }
-                        printf("\n");
-                    }
-                    */
+                    // printf("Fast DCT on Y Block:\n");
+                    // for (int i = 0; i < 8; i++) {
+                    //     for (int j = 0; j < 8; j++) {
+                    //         printf("%8.2f ", Y_dct_blocks[0][i][j]);
+                    //     }
+                    //     printf("\n");
+                    // }
+                    
                     
                     // changes coefficients to range +-30
                     quantization(Y_dct_blocks[block], Y_quantized[block], quality_factor);
                     // // Printing quantization result on Y block
-                    /*
-                    printf("Quantized coeffs. on Y Block:\n");
-                    for (int i = 0; i < 8; i++) {
-                        for (int j = 0; j < 8; j++) {
-                            int block_num = 0; // only prints first of 4 blocks, change int if needed
-                            printf("%4d ", Y_quantized[block_num][i][j]);
-                        }
-                        printf("\n");
-                    }
-                    */
+                    
+                    // printf("Quantized coeffs. on Y Block:\n");
+                    // for (int i = 0; i < 8; i++) {
+                    //     for (int j = 0; j < 8; j++) {
+                    //         int block_num = 0; // only prints first of 4 blocks, change int if needed
+                    //         printf("%4d ", Y_quantized[block_num][i][j]);
+                    //     }
+                    //     printf("\n");
+                    // }
+                    
 
                     zigzag_scanning(Y_quantized[block], Y_zigzag[block]);  // puts blocks in zigzag scan order
                     equalize_coefficients(Y_zigzag[block], Y_equalized[block]); // removes zeros by +-1
                     
-                    /*
+                    
                     // Printing zigzag scanning result on Y block
-                    printf("Equalized zigzag-scanned coeffs. on Y block:\n");
-                    for (int i = 0; i < 64; i++) {
-                        printf("%4d ", Y_equalized[0][i]);
-                    }
-                    printf("\n");
-                    */
+                    // printf("Equalized zigzag-scanned coeffs. on Y block:\n");
+                    // for (int i = 0; i < 64; i++) {
+                    //     printf("%4d ", Y_equalized[0][i]);
+                    // }
+                    // printf("\n");
+                    
                     
                     // Creates 1D array of RLE-encoded coefficients of "tuples" (coeff, run_length) : [coeff1, RL1, coeff2, RL2, etc.]
                     int Y_encoded_array[128];
                     int *Y_RLE = run_length_encode(Y_equalized[block], Y_encoded_array);
+
+                    // printf("RLE zigzag-scanned coeffs. on Y block:\n");
+                    // for (int i = 0; i < 64; i++) {
+                    //     printf("%4d ", Y_encoded_array[i]);
+                    // }
+                    // printf("\n");
                     
                     // encodes Y_array in VLC code and then converts it to a char array
                     BITVECTOR* temp_bv = bitvector_new("", 8);
@@ -383,6 +386,7 @@ int main() {
                 int *Cr_RLE = run_length_encode(Cr_zigzag, Cr_encoded_array);
                 
                 uint8_t is_luma = 0; // designates these are no longer Y blocks
+                encode_block_header_i(is_luma, slice_header);
                 
                 // encodes Cb_array in VLC code and then converts it to a char array
                 // BITVECTOR* temp_bv2 = bitvector_new("", 8);
@@ -395,6 +399,8 @@ int main() {
                 BITVECTOR* Cb_block_end_header = bitvector_new("", 8);
                 encode_block_end(slice_header);
                 // filesize = fwrite(Cb_block_end_header, sizeof(char), sizeof(Cb_block_end_header), fp);
+
+                encode_block_header_i(is_luma, slice_header);
                 
                 // encodes Cr_array in VLC code and then converts it to a char array
                 // BITVECTOR* temp_bv3 = bitvector_new("", 8);
@@ -422,7 +428,9 @@ int main() {
                 //free(Cb_dct);
                 //free(Cr_dct);
             }
-            bitvector_concat(slice_header, &ZEROES_25);
+            // bitvector_concat(slice_header, &ZEROES_25);
+            while (slice_header->cap & 0x7)
+                bitvector_put_bit(slice_header, 0);
         }
         filesize = bitvector_fwrite(slice_header, fp);
         total_written += filesize;
@@ -436,7 +444,7 @@ int main() {
         fseek(fp, 0, SEEK_END);
         // SEQUENCE END HEADER
         uint8_t sequence_end_header[4];
-        mpeg1_sequence_end(sequence_end_header);
+        // mpeg1_sequence_end(sequence_end_header);
         filesize = fwrite(sequence_end_header, sizeof(char), sizeof(sequence_end_header), fp);
 
         // Creating unique bitstream file names
@@ -464,6 +472,7 @@ int main() {
             minute = 0;
             second = 0;
         }
+        // break;
     }
 
     // Free images

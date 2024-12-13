@@ -403,18 +403,20 @@ void VLC_encode(int RLE_array[128], BITVECTOR* temp_dest_bv) {
     int level_index = 0; 
     int run_index = 1;   
     int run, level, first;
+    int trun = 0;
     BITVECTOR* temp_var;
     BITVECTOR* temp_coeff_bv = bitvector_new("", 16);       // will hold individual encoded coefficients
     for (int RLE_index = 0; RLE_index < 64; RLE_index++) {  // iterate through entire 1x64 zigzag-scanned array
         // determines whether the coefficient is the first one in the zigzag block, important for encoding.
         if (RLE_index == 0) {
-            first = 1;
+            first = 0;
         }
         else {
             first = 0;
         }
         level = RLE_array[level_index];
         run = RLE_array[run_index];
+        trun += run;
                         
         if (run == 0 || level == 0) { // accounts for zeros in RLE array, they have no relevant value
             break;
@@ -426,6 +428,7 @@ void VLC_encode(int RLE_array[128], BITVECTOR* temp_dest_bv) {
         run_index += 2;
         level_index += 2;
     }
+    printf("Total run value: %d\n", trun);
 }
 
 // Fn. for dequantization (decoding)
@@ -729,17 +732,21 @@ int* run_length_encode(int zigzag_block[64], int encoded_array[128]) {
         }
         
     }
+
+    
     
     index = index;
-    int *return_array = (int*)malloc(index * sizeof(int));
-    if (!return_array){
-        return NULL;
-    }
-    for (int i = 0; i < index; i++) {
-        return_array[i] = encoded_array[i];
-    }
+    // int *return_array = (int*)malloc(index * sizeof(int));
+    // if (!return_array){
+    //     return NULL;
+    // }
+    // for (int i = 0; i < index; i++) {
+    //     return_array[i] = encoded_array[i];
+    // }
+    // encoded_array[index] = 127; encoded_array[index ++] = 0;
+    encoded_array[index] = encoded_array[index ++] = 0;
     // print_array(return_array, index);
-    return return_array;
+    return encoded_array;
 }
 
 void write_to_bitstream(const char *filename, unsigned char *Y, unsigned char *Cb, unsigned char *Cr, int width, int height){
