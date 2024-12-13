@@ -61,14 +61,47 @@ void encode_macroblock_end(BV* output) {
     B(put_bit, output, 1);
 }
 
+#include "image_processing.h"
 
 // qscale set to -1 if the block do not use customize scale
-void encode_block_header_i(uint8_t is_luma, BV* output) {
+void encode_block_header_i(unsigned char is_luma, int coeff[128], BV* output) {
+
+    printf("Coeff starting value %d %d %d\n", coeff[0], coeff[1], is_luma);
+
+    bitvector_print(output);
+
+    if (coeff[0] != 0 && coeff[1] == 0) {
+        int coe = coeff[0];
+        if (coe < 0) coe = -coe;
+        int sz = 1, probe = 1;
+        int i = 0;
+        for (;i < 8; i ++) {
+            if (coe & (1 << (i - 1))) probe = i; // mark the msb
+        }
+
+        sz = probe;
+
+        encode_coeff_sz_fast(output, sz, is_luma);
+
+        if (coeff[0] < 0) {
+            coe ^= (1 << (sz - 1)); // unmark lsb value
+        }
+
+        bitvector_put_byte_off(output, coe & 0xff, sz, 8 - sz);
+
+        VLC_encode(coeff + 2, output);
+
+        printf("Probed size %d\n", sz);
+    } else { 
 
     if (is_luma) {
         B(concat, output, bitvector_new("100", 3));
     } else {
         B(concat, output, bitvector_new("00", 2));
+    }
+
+    VLC_encode(coeff, output);
+
     }
 
     // B(print, output);

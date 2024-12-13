@@ -428,7 +428,8 @@ void VLC_encode(int RLE_array[128], BITVECTOR* temp_dest_bv) {
         run_index += 2;
         level_index += 2;
     }
-    printf("Total run value: %d\n", trun);
+    // printf("Total run value: %d\n", trun);
+    bitvector_print(temp_dest_bv);
 }
 
 // Fn. for dequantization (decoding)

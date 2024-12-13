@@ -47,4 +47,6 @@ BITVECTOR *encode_macblk_address_value(int value);
 
 BITVECTOR *encode_blk_coeff(int run, int level, int first);
 
+void encode_coeff_sz_fast(BITVECTOR* output, char value, char is_luma);
+
 #endif

@@ -222,7 +222,7 @@ int main() {
         vertical_pos = 0; // necessary for slice headers
 
         // PICTURE HEADER
-        int quality_factor = 90; // factor to scale Q MATIX for quantization
+        int quality_factor = 12; // factor to scale Q MATIX for quantization
         char picture_header[9];
         mpeg1_picture_header(temporal_ref, picture_type, /*vbv_delay*/ 0xffff, bidir_vector, picture_header);
         filesize = fwrite(picture_header, sizeof(char), 8 /* 9 for non-I frame*/, fp);
@@ -263,7 +263,6 @@ int main() {
                     // BLOCK HEADER HERE
                     uint8_t is_luma = 1; // 1 for Y channels, 0 for others
                     BITVECTOR* block_header = bitvector_new("", 8);
-                    encode_block_header_i(is_luma, slice_header);
                     char* block_output[8];
                     // bitvector_toarray(block_header, block_output);
                     // filesize = fwrite(block_output, sizeof(char), 8, fp);
@@ -316,18 +315,20 @@ int main() {
                     int Y_encoded_array[128];
                     int *Y_RLE = run_length_encode(Y_equalized[block], Y_encoded_array);
 
-                    // printf("RLE zigzag-scanned coeffs. on Y block:\n");
-                    // for (int i = 0; i < 64; i++) {
-                    //     printf("%4d ", Y_encoded_array[i]);
-                    // }
-                    // printf("\n");
+                    printf("RLE zigzag-scanned coeffs. on Y block:\n");
+                    for (int i = 0; i < 64; i++) {
+                        printf("%4d ", Y_encoded_array[i]);
+                    }
+                    printf("\n");
                     
                     // encodes Y_array in VLC code and then converts it to a char array
                     BITVECTOR* temp_bv = bitvector_new("", 8);
-                    VLC_encode(Y_encoded_array, slice_header);                             // VLC encode
+                    // VLC_encode(Y_encoded_array, slice_header);                             // VLC encode
                     char Y_encoded_char_array[temp_bv->cap >> 3];
                     // int Y_length = bitvector_toarray(temp_bv, Y_encoded_char_array);  // to char
                     // filesize = fwrite(Y_encoded_char_array, sizeof(char), sizeof(Y_encoded_char_array), fp);
+
+                    encode_block_header_i(is_luma, Y_encoded_array, slice_header);
                     
                     // BLOCK END HEADER
                     BITVECTOR* block_end_header = bitvector_new("", 8);
@@ -386,11 +387,11 @@ int main() {
                 int *Cr_RLE = run_length_encode(Cr_zigzag, Cr_encoded_array);
                 
                 uint8_t is_luma = 0; // designates these are no longer Y blocks
-                encode_block_header_i(is_luma, slice_header);
+                encode_block_header_i(is_luma, Cb_encoded_array, slice_header);
                 
                 // encodes Cb_array in VLC code and then converts it to a char array
                 // BITVECTOR* temp_bv2 = bitvector_new("", 8);
-                VLC_encode(Cb_encoded_array, slice_header);                             // VLC encode
+                // VLC_encode(Cb_encoded_array, slice_header);                             // VLC encode
                 // char Cb_encoded_char_array[temp_bv2->cap >> 3];
                 // int Cb_length = bitvector_toarray(temp_bv2, Cb_encoded_char_array);  // to char
                 // filesize = fwrite(Cb_encoded_char_array, sizeof(char), sizeof(Cb_encoded_char_array), fp);
@@ -400,11 +401,11 @@ int main() {
                 encode_block_end(slice_header);
                 // filesize = fwrite(Cb_block_end_header, sizeof(char), sizeof(Cb_block_end_header), fp);
 
-                encode_block_header_i(is_luma, slice_header);
+                encode_block_header_i(is_luma, Cr_encoded_array, slice_header);
                 
                 // encodes Cr_array in VLC code and then converts it to a char array
                 // BITVECTOR* temp_bv3 = bitvector_new("", 8);
-                VLC_encode(Cr_encoded_array, slice_header);                             // VLC encode
+                // VLC_encode(Cr_encoded_array, slice_header);                             // VLC encode
                 // char Cr_encoded_char_array[temp_bv3->cap >> 3];
                 // int Cr_length = bitvector_toarray(temp_bv3, Cr_encoded_char_array);  // to char
                 // filesize = fwrite(Cr_encoded_char_array, sizeof(char), sizeof(Cr_encoded_char_array), fp);

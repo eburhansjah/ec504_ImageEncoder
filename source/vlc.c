@@ -121,6 +121,7 @@ BITVECTOR *encode_macblk_encoding_value(int value) {
 struct vlc_macroblock dc_sz_luma_table[9] = {
     VLC_BLK("100"), // 0
     VLC_BLK("00"), // 1
+    VLC_BLK("01"), // 2
     VLC_BLK("101"),
     VLC_BLK("110"),
     VLC_BLK("1110"),
@@ -132,7 +133,8 @@ struct vlc_macroblock dc_sz_luma_table[9] = {
 // 
 struct vlc_macroblock dc_sz_chroma_table[9] = {
     VLC_BLK("00"), // 0
-    VLC_BLK("101"), // 1
+    VLC_BLK("01"), // 1
+    VLC_BLK("10"), // 2
     VLC_BLK("110"),
     VLC_BLK("1110"),
     VLC_BLK("11110"),
@@ -140,6 +142,19 @@ struct vlc_macroblock dc_sz_chroma_table[9] = {
     VLC_BLK("1111110"),
     VLC_BLK("11111110"), // 8
 };
+
+void encode_coeff_sz_fast(BITVECTOR* output, char value, char is_luma) {
+    if (value > 8) {
+        printf("[ERROR] Incorrect coeff size found!!\n");
+        exit(1);
+    } else {
+        if (is_luma) {
+            bitvector_concat(output, bitvector_new(dc_sz_luma_table[value].binstring, dc_sz_luma_table[value].bit_len));
+        } else {
+            bitvector_concat(output, bitvector_new(dc_sz_chroma_table[value].binstring, dc_sz_chroma_table[value].bit_len));
+        }
+    }
+}
 
 #define VLC_BLK_E(str) {str, sizeof(str) + 1}
 
