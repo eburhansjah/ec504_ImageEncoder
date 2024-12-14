@@ -71,7 +71,8 @@ To work with either the CLI or android app in our ![project](https://github.com/
 
 ```
 export $JAVA_HOME=/Your/Java/Home 
-# Set Java home, exampe for macOS /Library/Java/JavaVirtualMachines/openjdk-11.jdk/Contents/Home
+# Set Java home, example for macOS /Library/Java/JavaVirtualMachines/openjdk-11.jdk/Contents/Home
+# example for Linux /usr/lib/jvm/java-17-openjdk-amd64/
 # Windows is not recommended but could still build
 ```
 

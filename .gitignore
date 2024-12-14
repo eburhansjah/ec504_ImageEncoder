@@ -2,7 +2,8 @@
 /bitstreams
 encoder
 .o
-.swp
+*.swp
 .c.swp
 *.o
 **/*.o
+**/*.swp
