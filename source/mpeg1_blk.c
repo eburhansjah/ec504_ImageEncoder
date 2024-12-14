@@ -7,11 +7,11 @@
 #define B(name, ...) bitvector_ ## name (__VA_ARGS__)
 #define BV struct bitvector
 
-BV slice_start_code = {"\x00\x00\x01\x01", 32, 32, 32};
+BV slice_start_code = {"\x00\x00\x01", 24, 24, 24};
 
 void mpeg1_slice(uint8_t quant_scale, uint8_t vertical_pos /* <= 175 */, BV* out) {
     B(concat, out, &slice_start_code);
-    // B(put_byte_ent, out, vertical_pos + 1); // vertical pos starts with 1
+    B(put_byte_ent, out, vertical_pos + 1); // vertical pos starts with 1
     B(put_byte_off, out, quant_scale & 0x1f /* only 5 bits */, 5, 3);
     B(put_bit, out, 0); // fixed
     B(print, out);
@@ -71,11 +71,12 @@ void encode_block_header_i(unsigned char is_luma, int coeff[128], BV* output) {
     // bitvector_print(output);
 
     if (coeff[0] != 0 && coeff[1] == 0) {
+        // if (coeff[0] > -100) coeff[0] -= 128; 
         int coe = coeff[0];
         if (coe < 0) coe = -coe;
         int sz = 1, probe = 1;
         int i = 0;
-        for (;i < 8; i ++) {
+        for (;i <= 8; i ++) {
             if (coe & (1 << (i - 1))) probe = i; // mark the msb
         }
 

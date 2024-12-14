@@ -227,13 +227,14 @@ int main() {
         mpeg1_picture_header(temporal_ref, picture_type, /*vbv_delay*/ 0xffff, bidir_vector, picture_header);
         filesize = fwrite(picture_header, sizeof(char), 8 /* 9 for non-I frame*/, fp);
         total_written += 8;
+        int total_blocks = 0;
         
         // Extracting macroblocks and applying DCT over them
         // (4 for Y of 8x8 blocks, one Cb of 8x8 block, and one Cr of 8x8 block)
         // ref: https://stackoverflow.com/questions/8310749/discrete-cosine-transform-dct-implementation-c
         // Y
         BITVECTOR* slice_header = bitvector_new("", 8);
-        for (int y = 0; y < /*images[i]->height*/ 144; y += 16) { // SLICE LEVEL
+        for (int x = 0; x < /*images[i]->height*/ 96; x += 16) { // SLICE LEVEL
                 int address = 1; // macroblock address for header
             // SLICE HEADER
             BITVECTOR* b = bitvector_new("", 8);
@@ -243,7 +244,7 @@ int main() {
             // bitvector_toarray(slice_header, slice_output);
             // filesize = fwrite(slice_output, sizeof(char), 5, fp);
 
-            for (int x = 0; x < /*images[i]->width*/ 96; x += 16) { // MACROBLOCK LEVEL
+            for (int y = 0; y < /*images[i]->width*/ 144; y += 16) { // MACROBLOCK LEVEL
                 unsigned char Y_blocks[4][8][8]; // Array that stores 4 8x8 blocks
                 double Y_dct_blocks[4][8][8];
                 int Y_quantized[4][8][8];
@@ -259,6 +260,8 @@ int main() {
                 // filesize = fwrite(macroblock_output, sizeof(char), 8, fp);
 
                 for (int block = 0; block < 4; block++) { // BLOCK LEVEL
+
+                printf("Block #%d emitting\n", (++total_blocks));
                 
                     // BLOCK HEADER HERE
                     uint8_t is_luma = 1; // 1 for Y channels, 0 for others
@@ -385,6 +388,8 @@ int main() {
                 int Cb_encoded_array[128], Cr_encoded_array[128];
                 int *Cb_RLE = run_length_encode(Cb_zigzag, Cb_encoded_array);
                 int *Cr_RLE = run_length_encode(Cr_zigzag, Cr_encoded_array);
+
+                printf("Block #%d emitting\n", (++total_blocks));
                 
                 uint8_t is_luma = 0; // designates these are no longer Y blocks
                 encode_block_header_i(is_luma, Cb_encoded_array, slice_header);
@@ -400,6 +405,8 @@ int main() {
                 BITVECTOR* Cb_block_end_header = bitvector_new("", 8);
                 encode_block_end(slice_header);
                 // filesize = fwrite(Cb_block_end_header, sizeof(char), sizeof(Cb_block_end_header), fp);
+
+                printf("Block #%d emitting\n", (++total_blocks));
 
                 encode_block_header_i(is_luma, Cr_encoded_array, slice_header);
                 
@@ -428,6 +435,7 @@ int main() {
                 //free(Cr_block);
                 //free(Cb_dct);
                 //free(Cr_dct);
+                // encode_macroblock_end(slice_header);
             }
             // bitvector_concat(slice_header, &ZEROES_25);
             while (slice_header->cap & 0x7)
