@@ -46,21 +46,18 @@ This video encoder was designed as part of our final project for our Advanced Da
 
 ```
 
-## Dependencies
+## Dependencies for core encoder
 The following are the dependencies with which the project was created:
 - make
 - C (version 11+)
 - gcc
+- stb_image.h (which is already included here)
 
-This program was built and tested on the following operating systems:
-- Linux Mint 21.3 (Virginia)
-- MacOS
+## Encoder and CLI will work on:
+- Any 64-bit Linux system
+- ARM MacOS
 
-We will also be integrating this system into an Android application as part of our project.  This project may work on other platforms or with other package versions, but the above configurations are what we developed and tested upon. 
-
-The runnable Android application and instructions on how to get the jar file for command line  is available in this repository:
-https://github.com/Phosphorus15/ec504_AndroidCV/
-
+This project may function on other platforms, but has only been tested on the two specified above.  We also have an [Android application](https://github.com/Phosphorus15/ec504_AndroidCV/) integrated to this project.  It is runnable, and instructions for how to get the jar file for command line are available in its repository's README.
 
 ## How To
 First, clone this repository:
