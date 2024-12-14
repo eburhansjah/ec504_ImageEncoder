@@ -17,7 +17,7 @@
 // To display a buffer:
 // display_u8arr(out, 12);              // { buffer, sizeof(buffer) }
 
-int mpeg_encode_procedure(const char* images_folder, const char* bitstream_folder, const char* video_path) { 
+int mpeg_encode_procedure(const char* images_folder, const char* bitstream_folder, const char* video_path, int quality_factor /* factor to scale Q MATIX for quantization */) { 
     /* 
     CHANGING HEADER PARAMETERS
     - Here be dragons
@@ -224,7 +224,6 @@ int mpeg_encode_procedure(const char* images_folder, const char* bitstream_folde
         vertical_pos = 0; // necessary for slice headers
 
         // PICTURE HEADER
-        int quality_factor = 12; // factor to scale Q MATIX for quantization
         char picture_header[9];
         mpeg1_picture_header(temporal_ref, picture_type, /*vbv_delay*/ 0xffff, bidir_vector, picture_header);
         filesize = fwrite(picture_header, sizeof(char), 8 /* 9 for non-I frame*/, fp);

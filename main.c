@@ -13,5 +13,5 @@
 // display_u8arr(out, 12);              // { buffer, sizeof(buffer) }
 
 int main() { 
-    return mpeg_encode_procedure("images/", "bitstreams", "bitstreams/awesome_video.mpeg");
+    return mpeg_encode_procedure("images/", "bitstreams", "bitstreams/awesome_video.mpeg", 12);
 }

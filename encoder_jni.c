@@ -3,7 +3,7 @@
 
 // JNI wrapper function
 JNIEXPORT jint JNICALL Java_com_example_Encoder_mpegEncodeProcedure(
-    JNIEnv *env, jobject obj, jstring imagesFolder, jstring bitstreamFolder, jstring videoPath) {
+    JNIEnv *env, jobject obj, jstring imagesFolder, jstring bitstreamFolder, jstring videoPath, jint quality) {
 
     // Convert Java strings to C strings
     const char *c_imagesFolder = (*env)->GetStringUTFChars(env, imagesFolder, 0);
@@ -11,7 +11,7 @@ JNIEXPORT jint JNICALL Java_com_example_Encoder_mpegEncodeProcedure(
     const char *c_videoPath = (*env)->GetStringUTFChars(env, videoPath, 0);
 
     // Call the original C function
-    int result = mpeg_encode_procedure(c_imagesFolder, c_bitstreamFolder, c_videoPath);
+    int result = mpeg_encode_procedure(c_imagesFolder, c_bitstreamFolder, c_videoPath, quality);
 
     // Release Java strings
     (*env)->ReleaseStringUTFChars(env, imagesFolder, c_imagesFolder);
