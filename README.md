@@ -117,3 +117,18 @@ We are implementing **compression algorithms** and play the encoded file with an
 ## MPEG-1 Compliant Datastructure
 
 ![mpeg-1-compliant-ds](https://github.com/eburhansjah/ec504_ImageEncoder/blob/main/assests/mpeg1-compliant-ds.png)
+
+According to the ISO official CD 11172-2 "Coding of Moving Pictures and Associated Audio for Digital Storage Media at up to About 1.5 Mbit/s", MPEG-1 defines a variety of compression strategies and configurations that support a wide range of decoders.  In the context of this project, we implemented a limited but functional subset of these specifications, most of which are summarized here:
+
+- We only use I-frames in this project, which means no motion vector prediction (P- or B- frames) or D-frames.
+- No audio
+- Fixed quantizing matrix (as opposed to scalable)
+- Fixed parameters (frame rate, etc.)
+
+## Encoder Output
+This encoder will output `awesome_movie.mpeg` into your bitstream folder, which can then be played by most MPEG-1 compliant decoders. FFmpeg and Celluloid both work for playing the video, as does [PL_MPEG](https://github.com/phoboslab/pl_mpeg/tree/master), an open-source video decoder hosted by [Phoboslab](https://phoboslab.org/).
+
+Also in your bitstream folder, you will see some individual bitstreams that represent the encoded information of each individual image.  Feel free to check them out if you wish, although they are not currently utilized within the MPEG video creation.
+
+## Limitations
+Currently, the output of this decoder, while it is 100% MPEG-1 compliant in its file structure, it **does not currently output visually coherent video**.  Most of what you will see is flashing pink blocks.  We believe this is due to lost information in the AC coefficients of the luma blocks, but we were unable to narrow down the cause before submission deadline.  More specific information is provided in our project report.
