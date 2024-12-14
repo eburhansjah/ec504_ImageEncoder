@@ -1,10 +1,10 @@
 # Compiler and flags
 CC := gcc
-CFLAGS := -g -I include -fPIC -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux
+CFLAGS := -g -I include -fPIC -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -I$(JAVA_HOME)/include/darwin
 LDFLAGS := -lm
 
 # Source files
-SRC := source/image_processing.c source/jpeg_handler.c source/global_variables.c source/bit_vector.c source/mpeg1_enc.c source/vlc.c source/mpeg1_blk.c
+SRC := source/image_processing.c source/global_variables.c source/bit_vector.c source/mpeg1_enc.c source/vlc.c source/mpeg1_blk.c
 JNI_SRC := encoder_jni.c
 OBJ = $(SRC:.c=.o)
 JNI_OBJ = $(JNI_SRC:.c=.o)

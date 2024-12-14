@@ -70,6 +70,14 @@ make clean  # remove all targets
 To work with either the CLI or android app in our ![project](https://github.com/Phosphorus15/ec504_AndroidCV/), or use the encoder as a standalone tool, you'll want to compile this into a dynamic library, you can do this by using:
 
 ```
+export $JAVA_HOME=/Your/Java/Home 
+# Set Java home, exampe for macOS /Library/Java/JavaVirtualMachines/openjdk-11.jdk/Contents/Home
+# Windows is not recommended but could still build
+```
+
+and then
+
+```
 make jni
 ```
 

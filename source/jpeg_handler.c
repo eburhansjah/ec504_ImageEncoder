@@ -2,7 +2,8 @@
 #include <stdlib.h>
 
 #include "jpeg_handler.h"
-#include "stb_image.h"
+// #define STB_IMAGE_IMPLEMENTATION
+// #include "stb_image.h"
 
 // Fn. that loads jpeg files with stb_image
 Image* load_jpeg(const char *filename){

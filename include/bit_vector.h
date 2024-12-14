@@ -39,4 +39,6 @@ void bitvector_print(BITVECTOR* bv);
 
 int bitvector_fwrite(BITVECTOR* bv, FILE* file);
 
+void bitvector_expand_size(BITVECTOR* bv, long long int speculative);
+
 #endif

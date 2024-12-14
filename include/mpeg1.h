@@ -4,7 +4,8 @@
 
 #ifndef MPEG1_VG
 #define MPEG1_VG 1
-
+#include "mpeg1_blk.h"
+#include "mpeg1_enc.h"
 
 /*
 struct vlc_block {

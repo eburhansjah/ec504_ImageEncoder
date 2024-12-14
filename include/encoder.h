@@ -8,6 +8,7 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include "jpeg_handler.h"
 #include "image_processing.h"
 #include "bit_vector.h"
 #include "mpeg1.h"
