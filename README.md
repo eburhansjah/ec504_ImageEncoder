@@ -65,6 +65,22 @@ If you need a clean compilation, simply call:
 make clean  # remove all targets
 ```
 
+### To pack as shared library
+
+To work with either the CLI or android app in our ![project](https://github.com/Phosphorus15/ec504_AndroidCV/), or use the encoder as a standalone tool, you'll want to compile this into a dynamic library, you can do this by using:
+
+```
+make jni
+```
+
+Which will produce a `libencoder_jni.so` file that you could use to **put into** the Android/CLI codebase to make them fully functional. Or:
+
+```
+make sharedlib
+```
+
+If you only want an ordinary shared library that can be linked and use from your own code.
+
 ## MPEG-1 encoder and decoder framework
 
 ![mpeg1-encoder-decoder-framework](https://github.com/eburhansjah/ec504_ImageEncoder/blob/main/assests/mpeg1_encoder_decoder.png)
