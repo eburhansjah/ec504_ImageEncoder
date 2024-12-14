@@ -13,22 +13,36 @@ This video encoder was designed as part of our final project for our Advanced Da
 
 ```bash
 .
+├── assests
+│   ├── mpeg1-compliant-ds.png
+│   └── mpeg1_encoder_decoder.png
 ├── bitstreams
-│   └── images.bit
+│   ├── awesome_movie.mpeg
+├── encoder
 ├── images
-│   └── images.jpg
+│   ├── Upload your images here
 ├── include
+│   ├── bit_vector.h
 │   ├── global_variables.h
 │   ├── image_processing.h
 │   ├── jpeg_handler.h
-│   └── stb_image.h
+│   ├── mpeg1_blk.h
+│   ├── mpeg1_enc.h
+│   ├── mpeg1.h
+│   ├── stb_image.h
+│   └── vlc.h
 ├── main.c
 ├── Makefile
 ├── README.md
 └── source
+    ├── bit_vector.c
     ├── global_variables.c
     ├── image_processing.c
     ├── jpeg_handler.c
+    ├── mpeg1_blk.c
+    ├── mpeg1_enc.c
+    ├── vlc.c
+
 
 ```
 
